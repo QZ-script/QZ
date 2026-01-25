@@ -34,6 +34,28 @@ ctrlModalBtn.Modal = true
 ctrlModalBtn.ZIndex = 0
 ctrlModalBtn.Parent = gui
 
+local fakeCursorGui = Instance.new("ScreenGui")
+fakeCursorGui.Name = "FakeCursorGui"
+fakeCursorGui.IgnoreGuiInset = true
+fakeCursorGui.DisplayOrder = 1000001
+fakeCursorGui.Parent = LocalPlayer.PlayerGui
+fakeCursorGui.Enabled = false
+
+local fakeCursor = Instance.new("Frame")
+fakeCursor.Size = UDim2.fromOffset(6,6)
+fakeCursor.AnchorPoint = Vector2.new(0.5,0.5)
+fakeCursor.BackgroundColor3 = Color3.fromRGB(255,255,255)
+fakeCursor.BorderSizePixel = 0
+fakeCursor.ZIndex = 10
+fakeCursor.Parent = fakeCursorGui
+
+Instance.new("UICorner", fakeCursor).CornerRadius = UDim.new(1,0)
+
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 1
+stroke.Color = Color3.fromRGB(0,0,0)
+stroke.Parent = fakeCursor
+
 
 -- MAIN FRAME
 local main = Instance.new("Frame")
@@ -165,40 +187,92 @@ collapseBtn.MouseButton1Click:Connect(function()
 end)
 
 --------------------------------------------------
--- ESP (BILLBOARD GUI)
+-- SIMPLE TEXT ESP (NAME + HP)
 --------------------------------------------------
 local function createESP(player)
-	if espGuis[player] or not player.Character then return end
+	if espGuis[player] then return end
 	if teammateCheck and player.Team == LocalPlayer.Team then return end
 
-	local head = player.Character:FindFirstChild("Head")
-	if not head then return end
+	local char = player.Character
+	if not char then return end
+
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+	if not hum or not root then return end
 
 	local bb = Instance.new("BillboardGui")
-	bb.Adornee = head
-	bb.Size = UDim2.fromOffset(60,80)
+	bb.Name = "SimpleESP"
+	bb.Adornee = root
 	bb.AlwaysOnTop = true
+	bb.StudsOffset = Vector3.new(0, 3, 0)
+	bb.Size = UDim2.fromOffset(80, 40)
 	bb.Parent = gui
 
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.fromScale(1,1)
-	frame.BackgroundTransparency = 1
-	frame.Parent = bb
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.fromScale(1,1)
+	text.BackgroundTransparency = 1
+	text.TextColor3 = Color3.fromRGB(255,255,255)
+	text.TextStrokeTransparency = 0
+	text.TextStrokeColor3 = Color3.new(0,0,0)
+	text.Font = Enum.Font.GothamBold
+	text.TextSize = 14
+	text.TextWrapped = true
+	text.TextYAlignment = Enum.TextYAlignment.Center
+	text.Parent = bb
 
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 2
-	stroke.Color = Color3.fromRGB(255,60,60)
-	stroke.Parent = frame
-
-	espGuis[player] = bb
+	espGuis[player] = {
+		gui = bb,
+		hum = hum,
+		label = text
+	}
 end
+
 
 local function removeESP(player)
 	if espGuis[player] then
-		espGuis[player]:Destroy()
+		espGuis[player].gui:Destroy()
 		espGuis[player] = nil
 	end
 end
+
+RunService.RenderStepped:Connect(function()
+	for plr,data in pairs(espGuis) do
+		local bb = data.gui
+		local hum = data.hum
+
+		if not bb.Adornee or hum.Health <= 0 then
+			removeESP(plr)
+		else
+			-- update text
+			data.label.Text = plr.Name .. "\n" .. math.floor(hum.Health)
+
+			-- distance scale
+			local dist = (Camera.CFrame.Position - bb.Adornee.Position).Magnitude
+			local scale = math.clamp(1 / (dist / 40), 0.6, 1.8)
+
+			bb.Size = UDim2.fromOffset(80 * scale, 40 * scale)
+			data.label.TextSize = 14 * scale
+		end
+	end
+end)
+
+local function hookPlayer(player)
+	player.CharacterAdded:Connect(function()
+		task.wait(0.3)
+		if espEnabled then
+			createESP(player)
+		end
+	end)
+end
+
+for _,plr in ipairs(Players:GetPlayers()) do
+	if plr ~= LocalPlayer then
+		hookPlayer(plr)
+	end
+end
+
+Players.PlayerAdded:Connect(hookPlayer)
+Players.PlayerRemoving:Connect(removeESP)
 
 local function refreshESP()
 	for _,plr in ipairs(Players:GetPlayers()) do
@@ -308,15 +382,15 @@ UserInputService.InputBegan:Connect(function(input, gp)
 	end
 
 	if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
-		mouseUnlockedByCtrl = true
 		ctrlModalBtn.Visible = true
+		fakeCursorGui.Enabled = true
 	end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
 	if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
-		mouseUnlockedByCtrl = false
 		ctrlModalBtn.Visible = false
+		fakeCursorGui.Enabled = false
 	end
 end)
 
