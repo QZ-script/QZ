@@ -1,0 +1,330 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+--------------------------------------------------
+-- GUI
+--------------------------------------------------
+local gui = Instance.new("ScreenGui")
+gui.Name = "AdminAimGui"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.DisplayOrder = 999999
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+--------------------------------------------------
+-- CTRL MODAL IMAGEBUTTON (UNLOCK MOUSE)
+--------------------------------------------------
+local ctrlModalBtn = Instance.new("ImageButton")
+ctrlModalBtn.Name = "CtrlModal"
+ctrlModalBtn.Size = UDim2.fromScale(0,0)
+ctrlModalBtn.Position = UDim2.fromScale(0,0)
+ctrlModalBtn.BackgroundTransparency = 1
+ctrlModalBtn.ImageTransparency = 1
+ctrlModalBtn.AutoButtonColor = false
+ctrlModalBtn.Visible = false
+ctrlModalBtn.Active = false
+ctrlModalBtn.Modal = true
+ctrlModalBtn.ZIndex = 0
+ctrlModalBtn.Parent = gui
+
+
+-- MAIN FRAME
+local main = Instance.new("Frame")
+main.Size = UDim2.fromOffset(190, 205)
+main.Position = UDim2.fromScale(0.05, 0.4)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+main.Parent = gui
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
+
+-- TITLE
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "QZ Aimbot"
+title.TextColor3 = Color3.fromRGB(0, 200, 255)
+title.TextStrokeTransparency = 0
+title.TextStrokeColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.LuckiestGuy
+title.TextSize = 16
+title.Parent = main
+
+-- CTRL HINT
+local ctrlHint = Instance.new("TextLabel")
+ctrlHint.Size = UDim2.new(1, -20, 0, 16)
+ctrlHint.Position = UDim2.fromOffset(10, 28)
+ctrlHint.BackgroundTransparency = 1
+ctrlHint.Text = "hold CTRL to unlock mouse"
+ctrlHint.TextColor3 = Color3.fromRGB(180,180,180)
+ctrlHint.TextStrokeTransparency = 0.6
+ctrlHint.Font = Enum.Font.PatrickHand
+ctrlHint.TextSize = 16
+ctrlHint.TextXAlignment = Enum.TextXAlignment.Center
+ctrlHint.Parent = main
+
+--------------------------------------------------
+-- BUTTON STYLE
+--------------------------------------------------
+local function styleButton(btn)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.TextStrokeTransparency = 1
+	btn.Font = Enum.Font.LuckiestGuy
+	btn.TextSize = 15
+	btn.BorderSizePixel = 0
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
+end
+
+--------------------------------------------------
+-- BUTTONS
+--------------------------------------------------
+local aimBtn = Instance.new("TextButton")
+aimBtn.Size = UDim2.new(1,-20,0,40)
+aimBtn.Position = UDim2.fromOffset(10,50)
+aimBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+aimBtn.Text = "AIM : OFF (B)"
+aimBtn.Parent = main
+styleButton(aimBtn)
+
+local teamBtn = Instance.new("TextButton")
+teamBtn.Size = UDim2.new(1,-20,0,40)
+teamBtn.Position = UDim2.fromOffset(10,95)
+teamBtn.BackgroundColor3 = Color3.fromRGB(60,200,60)
+teamBtn.Text = "TEAM CHECK : ON"
+teamBtn.Parent = main
+styleButton(teamBtn)
+
+local espBtn = Instance.new("TextButton")
+espBtn.Size = UDim2.new(1,-20,0,40)
+espBtn.Position = UDim2.fromOffset(10,140)
+espBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+espBtn.Text = "ESP : OFF"
+espBtn.Parent = main
+styleButton(espBtn)
+
+--------------------------------------------------
+-- COLLAPSE BUTTON
+--------------------------------------------------
+local collapseBtn = Instance.new("TextButton")
+collapseBtn.Size = UDim2.fromOffset(30,30)
+collapseBtn.Position = UDim2.new(1,-35,0,0)
+collapseBtn.BackgroundTransparency = 1
+collapseBtn.Text = "–"
+collapseBtn.TextColor3 = Color3.fromRGB(0,200,255)
+collapseBtn.TextStrokeTransparency = 0
+collapseBtn.Font = Enum.Font.LuckiestGuy
+collapseBtn.TextSize = 26
+collapseBtn.Parent = main
+
+--------------------------------------------------
+-- STATE
+--------------------------------------------------
+local aiming = false
+local teammateCheck = true
+local espEnabled = false
+local mouseUnlockedByCtrl = false
+local isCollapsed = false
+local aimConnection
+local espGuis = {}
+
+local expandedSize = main.Size
+local collapsedSize = UDim2.fromOffset(190,45)
+
+--------------------------------------------------
+-- COLLAPSE / EXPAND (SMOOTH)
+--------------------------------------------------
+local function tweenMenu(collapse)
+	isCollapsed = collapse
+	collapseBtn.Text = collapse and "+" or "–"
+
+	local info = TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+	TweenService:Create(main, info, {
+		Size = collapse and collapsedSize or expandedSize
+	}):Play()
+
+	for _,v in ipairs(main:GetChildren()) do
+		if v:IsA("TextButton") and v ~= collapseBtn then
+			TweenService:Create(v, info, {
+				BackgroundTransparency = collapse and 1 or 0,
+				TextTransparency = collapse and 1 or 0
+			}):Play()
+		end
+	end
+end
+
+collapseBtn.MouseButton1Click:Connect(function()
+	tweenMenu(not isCollapsed)
+end)
+
+--------------------------------------------------
+-- ESP (BILLBOARD GUI)
+--------------------------------------------------
+local function createESP(player)
+	if espGuis[player] or not player.Character then return end
+	if teammateCheck and player.Team == LocalPlayer.Team then return end
+
+	local head = player.Character:FindFirstChild("Head")
+	if not head then return end
+
+	local bb = Instance.new("BillboardGui")
+	bb.Adornee = head
+	bb.Size = UDim2.fromOffset(60,80)
+	bb.AlwaysOnTop = true
+	bb.Parent = gui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.fromScale(1,1)
+	frame.BackgroundTransparency = 1
+	frame.Parent = bb
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Color = Color3.fromRGB(255,60,60)
+	stroke.Parent = frame
+
+	espGuis[player] = bb
+end
+
+local function removeESP(player)
+	if espGuis[player] then
+		espGuis[player]:Destroy()
+		espGuis[player] = nil
+	end
+end
+
+local function refreshESP()
+	for _,plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer then
+			if espEnabled then
+				createESP(plr)
+			else
+				removeESP(plr)
+			end
+		end
+	end
+end
+
+--------------------------------------------------
+-- AIM LOGIC
+--------------------------------------------------
+local function getClosestHead()
+	local closest, dist = nil, math.huge
+	for _,plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and plr.Character and
+			(not teammateCheck or plr.Team ~= LocalPlayer.Team) then
+
+			local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+			local head = plr.Character:FindFirstChild("Head")
+
+			if hum and hum.Health > 0 and head then
+				local d = (head.Position - Camera.CFrame.Position).Magnitude
+				if d < dist then
+					dist = d
+					closest = head
+				end
+			end
+		end
+	end
+	return closest
+end
+
+local function startAim()
+	aimConnection = RunService.RenderStepped:Connect(function()
+		if mouseUnlockedByCtrl then return end
+		local head = getClosestHead()
+		if head then
+			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
+		end
+	end)
+end
+
+local function stopAim()
+	if aimConnection then
+		aimConnection:Disconnect()
+		aimConnection = nil
+	end
+end
+
+--------------------------------------------------
+-- UI UPDATE
+--------------------------------------------------
+local function updateAimUI()
+	if aiming then
+		aimBtn.Text = "AIM : ON (B)"
+		aimBtn.BackgroundColor3 = Color3.fromRGB(60,200,60)
+		startAim()
+	else
+		aimBtn.Text = "AIM : OFF (B)"
+		aimBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+		stopAim()
+	end
+end
+
+local function updateTeamUI()
+	teamBtn.Text = teammateCheck and "TEAM CHECK : ON" or "TEAM CHECK : OFF"
+	teamBtn.BackgroundColor3 = teammateCheck and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
+	refreshESP()
+end
+
+local function updateESPUI()
+	espBtn.Text = espEnabled and "ESP : ON" or "ESP : OFF"
+	espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
+	refreshESP()
+end
+
+--------------------------------------------------
+-- INPUT
+--------------------------------------------------
+aimBtn.MouseButton1Click:Connect(function()
+	aiming = not aiming
+	updateAimUI()
+end)
+
+teamBtn.MouseButton1Click:Connect(function()
+	teammateCheck = not teammateCheck
+	updateTeamUI()
+end)
+
+espBtn.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	updateESPUI()
+end)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+
+	if input.KeyCode == Enum.KeyCode.B then
+		aiming = not aiming
+		updateAimUI()
+	end
+
+	if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
+		mouseUnlockedByCtrl = true
+		ctrlModalBtn.Visible = true
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
+		mouseUnlockedByCtrl = false
+		ctrlModalBtn.Visible = false
+	end
+end)
+
+Players.PlayerRemoving:Connect(removeESP)
+
+--------------------------------------------------
+-- INIT
+--------------------------------------------------
+updateAimUI()
+updateTeamUI()
+updateESPUI()
