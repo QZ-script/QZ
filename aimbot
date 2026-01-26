@@ -150,7 +150,7 @@ collapseBtn.Parent = main
 -- STATE
 --------------------------------------------------
 local aiming = false
-local teammateCheck = true
+local teammateCheck = false
 local espEnabled = false
 local mouseUnlockedByCtrl = false
 local isCollapsed = false
