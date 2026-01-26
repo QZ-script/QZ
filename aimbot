@@ -4,7 +4,6 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -55,28 +54,25 @@ main.Parent = gui
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
 
 --------------------------------------------------
--- DRAG LOGIC (NON-DEPRECATED)
+-- DRAG
 --------------------------------------------------
 do
 	local dragging, dragStart, startPos
-
-	main.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+	main.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = true
-			dragStart = input.Position
+			dragStart = i.Position
 			startPos = main.Position
 		end
 	end)
-
-	main.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+	main.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = false
 		end
 	end)
-
-	UserInputService.InputChanged:Connect(function(input)
-		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-			local delta = input.Position - dragStart
+	UserInputService.InputChanged:Connect(function(i)
+		if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = i.Position - dragStart
 			main.Position = UDim2.new(
 				startPos.X.Scale, startPos.X.Offset + delta.X,
 				startPos.Y.Scale, startPos.Y.Offset + delta.Y
@@ -86,21 +82,21 @@ do
 end
 
 --------------------------------------------------
--- UI ELEMENTS
+-- UI
 --------------------------------------------------
-local function createButton(text, y)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1,-20,0,40)
-	btn.Position = UDim2.fromOffset(10,y)
-	btn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-	btn.Text = text
-	btn.Font = Enum.Font.LuckiestGuy
-	btn.TextSize = 15
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.BorderSizePixel = 0
-	btn.Parent = main
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
-	return btn
+local function createButton(text,y)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(1,-20,0,40)
+	b.Position = UDim2.fromOffset(10,y)
+	b.BackgroundColor3 = Color3.fromRGB(200,50,50)
+	b.Text = text
+	b.Font = Enum.Font.LuckiestGuy
+	b.TextSize = 15
+	b.TextColor3 = Color3.new(1,1,1)
+	b.BorderSizePixel = 0
+	b.Parent = main
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+	return b
 end
 
 local title = Instance.new("TextLabel")
@@ -112,9 +108,9 @@ title.Font = Enum.Font.LuckiestGuy
 title.TextSize = 16
 title.Parent = main
 
-local aimBtn = createButton("AIM : OFF (B)",50)
+local aimBtn  = createButton("AIM : OFF (B)",50)
 local teamBtn = createButton("TEAM CHECK : OFF",95)
-local espBtn = createButton("ESP : OFF",140)
+local espBtn  = createButton("ESP : OFF",140)
 
 --------------------------------------------------
 -- STATE
@@ -125,31 +121,33 @@ local espEnabled = false
 local unlockMouse = false
 
 local aimConn
-local espData = {}
+local espData = {} -- [player] = {gui=BillboardGui, hum=Humanoid}
 
 --------------------------------------------------
--- ESP FUNCTIONS
+-- ESP CORE
 --------------------------------------------------
-local function removeESP(plr)
+local function clearESP(plr)
 	if espData[plr] then
-		espData[plr]:Destroy()
+		espData[plr].gui:Destroy()
 		espData[plr] = nil
 	end
 end
 
-local function createESP(plr)
+local function buildESP(plr)
+	if plr == LocalPlayer then return end
 	if espData[plr] then return end
 	if teammateCheck and plr.Team == LocalPlayer.Team then return end
 	if not plr.Character then return end
 
-	local root = plr.Character:FindFirstChild("HumanoidRootPart")
-	local hum = plr.Character:FindFirstChildOfClass("Humanoid")
-	if not root or not hum or hum.Health <= 0 then return end
+	local char = plr.Character
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not hum or not root or hum.Health <= 0 then return end
 
 	local bb = Instance.new("BillboardGui")
-	bb.Size = UDim2.fromOffset(80,40)
-	bb.AlwaysOnTop = true
+	bb.Size = UDim2.fromOffset(90,45)
 	bb.StudsOffset = Vector3.new(0,3,0)
+	bb.AlwaysOnTop = true
 	bb.Adornee = root
 	bb.Parent = espFolder
 
@@ -162,36 +160,50 @@ local function createESP(plr)
 	txt.TextSize = 14
 	txt.Parent = bb
 
-	espData[plr] = bb
-
-	RunService.RenderStepped:Connect(function()
-		if not bb.Parent or hum.Health <= 0 then
-			removeESP(plr)
-			return
-		end
-
-		txt.Text = plr.Name .. "\n" .. math.floor(hum.Health)
-	end)
+	espData[plr] = {gui = bb, hum = hum, label = txt}
 end
 
 local function refreshESP()
 	for _,plr in ipairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer then
-			if espEnabled then
-				createESP(plr)
-			else
-				removeESP(plr)
-			end
+		clearESP(plr)
+		if espEnabled then
+			task.defer(buildESP, plr)
 		end
 	end
 end
 
+-- SINGLE RenderStepped (FIX LỚN NHẤT)
+RunService.RenderStepped:Connect(function()
+	if not espEnabled then return end
+	for plr,data in pairs(espData) do
+		if not plr.Character or data.hum.Health <= 0 then
+			clearESP(plr)
+		else
+			data.label.Text = plr.Name .. "\n" .. math.floor(data.hum.Health)
+		end
+	end
+end)
+
 --------------------------------------------------
--- AIM (SCREEN CENTER BASED)
+-- PLAYER EVENTS (FIX TRIỆT ĐỂ)
+--------------------------------------------------
+Players.PlayerAdded:Connect(function(plr)
+	plr.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		if espEnabled then
+			buildESP(plr)
+		end
+	end)
+end)
+
+Players.PlayerRemoving:Connect(clearESP)
+
+--------------------------------------------------
+-- AIM
 --------------------------------------------------
 local function getClosestToCenter()
-	local closest, bestDist
-	local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+	local center = Camera.ViewportSize/2
+	local best, bestDist
 
 	for _,plr in ipairs(Players:GetPlayers()) do
 		if plr ~= LocalPlayer
@@ -200,40 +212,34 @@ local function getClosestToCenter()
 
 			local head = plr.Character:FindFirstChild("Head")
 			local hum = plr.Character:FindFirstChildOfClass("Humanoid")
-
 			if head and hum and hum.Health > 0 then
-				local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+				local pos,onScreen = Camera:WorldToViewportPoint(head.Position)
 				if onScreen then
-					local dist = (Vector2.new(pos.X,pos.Y) - center).Magnitude
-					if not bestDist or dist < bestDist then
-						bestDist = dist
-						closest = head
+					local d = (Vector2.new(pos.X,pos.Y)-center).Magnitude
+					if not bestDist or d < bestDist then
+						bestDist = d
+						best = head
 					end
 				end
 			end
 		end
 	end
-	return closest
+	return best
 end
 
 local function startAim()
 	if aimConn then return end
 	aimConn = RunService.RenderStepped:Connect(function()
 		if unlockMouse then return end
-		if Camera.CameraType ~= Enum.CameraType.Custom then return end
-
-		local head = getClosestToCenter()
-		if head then
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
+		local h = getClosestToCenter()
+		if h then
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, h.Position)
 		end
 	end)
 end
 
 local function stopAim()
-	if aimConn then
-		aimConn:Disconnect()
-		aimConn = nil
-	end
+	if aimConn then aimConn:Disconnect() aimConn=nil end
 end
 
 --------------------------------------------------
@@ -241,14 +247,12 @@ end
 --------------------------------------------------
 UserInputService.InputBegan:Connect(function(i,gp)
 	if gp then return end
-
 	if i.KeyCode == Enum.KeyCode.B then
 		aiming = not aiming
 		aimBtn.Text = aiming and "AIM : ON (B)" or "AIM : OFF (B)"
 		aimBtn.BackgroundColor3 = aiming and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
 		if aiming then startAim() else stopAim() end
 	end
-
 	if i.KeyCode == Enum.KeyCode.LeftControl then
 		unlockMouse = true
 		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -271,14 +275,8 @@ RunService.RenderStepped:Connect(function()
 end)
 
 --------------------------------------------------
--- BUTTON EVENTS
+-- BUTTONS
 --------------------------------------------------
-aimBtn.MouseButton1Click:Connect(function()
-	UserInputService.InputBegan:Fire({
-		KeyCode = Enum.KeyCode.B
-	},false)
-end)
-
 teamBtn.MouseButton1Click:Connect(function()
 	teammateCheck = not teammateCheck
 	teamBtn.Text = teammateCheck and "TEAM CHECK : ON" or "TEAM CHECK : OFF"
@@ -292,8 +290,3 @@ espBtn.MouseButton1Click:Connect(function()
 	espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
 	refreshESP()
 end)
-
---------------------------------------------------
--- PLAYER HANDLING
---------------------------------------------------
-Players.PlayerRemoving:Connect(removeESP)
