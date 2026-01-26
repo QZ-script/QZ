@@ -190,28 +190,16 @@ local function getScale(distance)
 	return math.clamp(1 / (distance / 35), 0.6, 1.6)
 end
 
---------------------------------------------------
--- SIMPLE TEXT ESP (NAME + HP)
---------------------------------------------------
+-- ESP GUI
 local function createESP(player)
 	if espGuis[player] then return end
 	if teammateCheck and player.Team == LocalPlayer.Team then return end
-	
-	local function getCharacterParts(char)
-		local hum = char:WaitForChild("Humanoid", 5)
-		local root = char:WaitForChild("HumanoidRootPart", 5)
-			or char:WaitForChild("Torso", 5)
-
-		if hum and root then
-			return hum, root
-		end
-	end
 
 	local char = player.Character
-	local hum, root = getCharacterParts(char)
-	if not hum or not root then return end
 	if not char then return end
 
+	local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+	if not root then return end
 
 	local bb = Instance.new("BillboardGui")
 	bb.Name = "SimpleESP"
@@ -219,7 +207,7 @@ local function createESP(player)
 	bb.AlwaysOnTop = true
 	bb.StudsOffset = Vector3.new(0, 3, 0)
 	bb.Size = UDim2.fromOffset(80, 40)
-	bb.Parent = gui
+	bb.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 	local text = Instance.new("TextLabel")
 	text.Size = UDim2.fromScale(1,1)
@@ -235,11 +223,9 @@ local function createESP(player)
 
 	espGuis[player] = {
 		gui = bb,
-		hum = hum,
 		label = text
 	}
 end
-
 
 local function removeESP(player)
 	if espGuis[player] then
@@ -250,28 +236,27 @@ end
 
 RunService.RenderStepped:Connect(function()
 	for plr,data in pairs(espGuis) do
-		local bb = data.gui
-		local hum = data.hum
+		local char = plr.Character
+		if not char then
+			removeESP(plr)
+			continue
+		end
 
-		if not bb.Adornee or hum.Health <= 0 then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+
+		if not hum or hum.Health <= 0 or not root then
 			removeESP(plr)
 		else
-			-- update text
+			data.gui.Adornee = root
 			data.label.Text = plr.Name .. "\n" .. math.floor(hum.Health)
 
-			local dist = (Camera.CFrame.Position - bb.Adornee.Position).Magnitude
+			local dist = (Camera.CFrame.Position - root.Position).Magnitude
 			local scale = math.clamp(40 / dist, 0.6, 1.8)
 
-			bb.Size = UDim2.fromOffset(80 * scale, 40 * scale)
+			data.gui.Size = UDim2.fromOffset(80 * scale, 40 * scale)
 			data.label.TextSize = 14 * scale
 		end
-	end	
-	if fakeCursorGui.Enabled then
-		local mousePos = UserInputService:GetMouseLocation()
-		fakeCursor.Position = UDim2.fromOffset(
-			mousePos.X,
-			mousePos.Y
-		)
 	end
 end)
 
@@ -282,8 +267,9 @@ local function hookPlayer(player)
 	end
 
 	player.CharacterAdded:Connect(function()
-		task.wait(0.2)
+		task.wait(0.3)
 		if espEnabled then
+			removeESP(player)
 			createESP(player)
 		end
 	end)
@@ -353,6 +339,8 @@ local function updateMouseState()
 end
 
 local function startAim()
+	if aimConnection then return end
+
 	aimConnection = RunService.RenderStepped:Connect(function()
 		if mouseUnlockedByCtrl then return end
 		local head = getClosestHead()
@@ -360,6 +348,7 @@ local function startAim()
 			Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
 		end
 	end)
+
 	updateMouseState()
 end
 
