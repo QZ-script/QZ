@@ -267,13 +267,19 @@ RunService.RenderStepped:Connect(function()
 end)
 
 local function hookPlayer(player)
+	-- nếu ESP đang bật và character đã tồn tại
+	if espEnabled and player.Character then
+		createESP(player)
+	end
+
 	player.CharacterAdded:Connect(function()
-		task.wait(0.3)
+		task.wait(0.2)
 		if espEnabled then
 			createESP(player)
 		end
 	end)
 end
+
 
 for _,plr in ipairs(Players:GetPlayers()) do
 	if plr ~= LocalPlayer then
@@ -393,15 +399,30 @@ UserInputService.InputBegan:Connect(function(input, gp)
 	end
 
 	if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
+		mouseUnlockedByCtrl = true
+
 		ctrlModalBtn.Visible = true
 		fakeCursorGui.Enabled = true
+
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		UserInputService.MouseIconEnabled = true
 	end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
 	if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
+		mouseUnlockedByCtrl = false
+
 		ctrlModalBtn.Visible = false
 		fakeCursorGui.Enabled = false
+
+		UserInputService.MouseIconEnabled = false
+
+		if aiming then
+			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+		else
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		end
 	end
 end)
 
