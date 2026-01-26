@@ -13,7 +13,7 @@ local Camera = workspace.CurrentCamera
 -- GUI ROOT
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "QZ_Aim_ESP"
+gui.Name = "QZAimGui"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.DisplayOrder = 999999
@@ -55,7 +55,7 @@ main.Parent = gui
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
 
 --------------------------------------------------
--- DRAG LOGIC (SAFE)
+-- DRAG LOGIC (NON-DEPRECATED)
 --------------------------------------------------
 do
 	local dragging, dragStart, startPos
@@ -88,55 +88,47 @@ end
 --------------------------------------------------
 -- UI ELEMENTS
 --------------------------------------------------
-local function makeButton(text, y)
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(1,-20,0,40)
-	b.Position = UDim2.fromOffset(10,y)
-	b.BackgroundColor3 = Color3.fromRGB(200,50,50)
-	b.Text = text
-	b.Font = Enum.Font.LuckiestGuy
-	b.TextSize = 15
-	b.TextColor3 = Color3.new(1,1,1)
-	b.BorderSizePixel = 0
-	b.Parent = main
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
-	return b
+local function createButton(text, y)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1,-20,0,40)
+	btn.Position = UDim2.fromOffset(10,y)
+	btn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+	btn.Text = text
+	btn.Font = Enum.Font.LuckiestGuy
+	btn.TextSize = 15
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.BorderSizePixel = 0
+	btn.Parent = main
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
+	return btn
 end
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,30)
 title.BackgroundTransparency = 1
-title.Text = "QZ AIM + ESP"
+title.Text = "QZ AIM"
 title.TextColor3 = Color3.fromRGB(120,80,255)
 title.Font = Enum.Font.LuckiestGuy
 title.TextSize = 16
 title.Parent = main
 
-local aimBtn  = makeButton("AIM : OFF (B)",50)
-local teamBtn = makeButton("TEAM CHECK : OFF",95)
-local espBtn  = makeButton("ESP : OFF",140)
+local aimBtn = createButton("AIM : OFF (B)",50)
+local teamBtn = createButton("TEAM CHECK : OFF",95)
+local espBtn = createButton("ESP : OFF",140)
 
 --------------------------------------------------
 -- STATE
 --------------------------------------------------
 local aiming = false
-local espEnabled = false
 local teammateCheck = false
+local espEnabled = false
 local unlockMouse = false
 
 local aimConn
 local espData = {}
 
 --------------------------------------------------
--- UTILS
---------------------------------------------------
-local function getRoot(char)
-	return char:FindFirstChild("HumanoidRootPart")
-		or char:FindFirstChild("Torso")
-end
-
---------------------------------------------------
--- ESP CORE
+-- ESP FUNCTIONS
 --------------------------------------------------
 local function removeESP(plr)
 	if espData[plr] then
@@ -147,22 +139,18 @@ end
 
 local function createESP(plr)
 	if espData[plr] then return end
-	if not espEnabled then return end
 	if teammateCheck and plr.Team == LocalPlayer.Team then return end
 	if not plr.Character then return end
 
-	local char = plr.Character
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	local root = getRoot(char)
-
-	if not hum or hum.Health <= 0 or not root then return end
+	local root = plr.Character:FindFirstChild("HumanoidRootPart")
+	local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+	if not root or not hum or hum.Health <= 0 then return end
 
 	local bb = Instance.new("BillboardGui")
-	bb.Name = "ESP_" .. plr.Name
-	bb.Adornee = root
+	bb.Size = UDim2.fromOffset(80,40)
 	bb.AlwaysOnTop = true
 	bb.StudsOffset = Vector3.new(0,3,0)
-	bb.Size = UDim2.fromOffset(80,40)
+	bb.Adornee = root
 	bb.Parent = espFolder
 
 	local txt = Instance.new("TextLabel")
@@ -176,13 +164,12 @@ local function createESP(plr)
 
 	espData[plr] = bb
 
-	local conn
-	conn = RunService.RenderStepped:Connect(function()
-		if not plr.Character or hum.Health <= 0 or not root.Parent then
-			conn:Disconnect()
+	RunService.RenderStepped:Connect(function()
+		if not bb.Parent or hum.Health <= 0 then
 			removeESP(plr)
 			return
 		end
+
 		txt.Text = plr.Name .. "\n" .. math.floor(hum.Health)
 	end)
 end
@@ -190,48 +177,20 @@ end
 local function refreshESP()
 	for _,plr in ipairs(Players:GetPlayers()) do
 		if plr ~= LocalPlayer then
-			removeESP(plr)
-			createESP(plr)
+			if espEnabled then
+				createESP(plr)
+			else
+				removeESP(plr)
+			end
 		end
 	end
 end
 
 --------------------------------------------------
--- PLAYER HOOK (QUAN TRỌNG)
+-- AIM (SCREEN CENTER BASED)
 --------------------------------------------------
-local function hookPlayer(plr)
-	local function onCharacter(char)
-		task.wait(0.2)
-		removeESP(plr)
-		createESP(plr)
-	end
-
-	plr.CharacterAdded:Connect(onCharacter)
-
-	if plr.Character then
-		onCharacter(plr.Character)
-	end
-end
-
-for _,plr in ipairs(Players:GetPlayers()) do
-	if plr ~= LocalPlayer then
-		hookPlayer(plr)
-	end
-end
-
-Players.PlayerAdded:Connect(function(plr)
-	if plr ~= LocalPlayer then
-		hookPlayer(plr)
-	end
-end)
-
-Players.PlayerRemoving:Connect(removeESP)
-
---------------------------------------------------
--- AIM (SCREEN CENTER)
---------------------------------------------------
-local function getClosestHead()
-	local closest, best
+local function getClosestToCenter()
+	local closest, bestDist
 	local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
 
 	for _,plr in ipairs(Players:GetPlayers()) do
@@ -243,11 +202,11 @@ local function getClosestHead()
 			local hum = plr.Character:FindFirstChildOfClass("Humanoid")
 
 			if head and hum and hum.Health > 0 then
-				local pos, visible = Camera:WorldToViewportPoint(head.Position)
-				if visible then
-					local d = (Vector2.new(pos.X,pos.Y) - center).Magnitude
-					if not best or d < best then
-						best = d
+				local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+				if onScreen then
+					local dist = (Vector2.new(pos.X,pos.Y) - center).Magnitude
+					if not bestDist or dist < bestDist then
+						bestDist = dist
 						closest = head
 					end
 				end
@@ -263,7 +222,7 @@ local function startAim()
 		if unlockMouse then return end
 		if Camera.CameraType ~= Enum.CameraType.Custom then return end
 
-		local head = getClosestHead()
+		local head = getClosestToCenter()
 		if head then
 			Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
 		end
@@ -290,7 +249,7 @@ UserInputService.InputBegan:Connect(function(i,gp)
 		if aiming then startAim() else stopAim() end
 	end
 
-	if i.KeyCode == Enum.KeyCode.LeftControl or i.KeyCode == Enum.KeyCode.RightControl then
+	if i.KeyCode == Enum.KeyCode.LeftControl then
 		unlockMouse = true
 		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 		fakeCursorGui.Enabled = true
@@ -298,7 +257,7 @@ UserInputService.InputBegan:Connect(function(i,gp)
 end)
 
 UserInputService.InputEnded:Connect(function(i)
-	if i.KeyCode == Enum.KeyCode.LeftControl or i.KeyCode == Enum.KeyCode.RightControl then
+	if i.KeyCode == Enum.KeyCode.LeftControl then
 		unlockMouse = false
 		fakeCursorGui.Enabled = false
 	end
@@ -315,10 +274,9 @@ end)
 -- BUTTON EVENTS
 --------------------------------------------------
 aimBtn.MouseButton1Click:Connect(function()
-	aiming = not aiming
-	aimBtn.Text = aiming and "AIM : ON (B)" or "AIM : OFF (B)"
-	aimBtn.BackgroundColor3 = aiming and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
-	if aiming then startAim() else stopAim() end
+	UserInputService.InputBegan:Fire({
+		KeyCode = Enum.KeyCode.B
+	},false)
 end)
 
 teamBtn.MouseButton1Click:Connect(function()
@@ -334,3 +292,8 @@ espBtn.MouseButton1Click:Connect(function()
 	espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
 	refreshESP()
 end)
+
+--------------------------------------------------
+-- PLAYER HANDLING
+--------------------------------------------------
+Players.PlayerRemoving:Connect(removeESP)
