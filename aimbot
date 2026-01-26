@@ -29,7 +29,7 @@ ctrlModalBtn.BackgroundTransparency = 1
 ctrlModalBtn.ImageTransparency = 1
 ctrlModalBtn.AutoButtonColor = false
 ctrlModalBtn.Visible = false
-ctrlModalBtn.Active = false
+ctrlModalBtn.Active = true
 ctrlModalBtn.Modal = true
 ctrlModalBtn.ZIndex = 0
 ctrlModalBtn.Parent = gui
@@ -186,6 +186,10 @@ collapseBtn.MouseButton1Click:Connect(function()
 	tweenMenu(not isCollapsed)
 end)
 
+local function getScale(distance)
+	return math.clamp(1 / (distance / 35), 0.6, 1.6)
+end
+
 --------------------------------------------------
 -- SIMPLE TEXT ESP (NAME + HP)
 --------------------------------------------------
@@ -246,13 +250,19 @@ RunService.RenderStepped:Connect(function()
 			-- update text
 			data.label.Text = plr.Name .. "\n" .. math.floor(hum.Health)
 
-			-- distance scale
 			local dist = (Camera.CFrame.Position - bb.Adornee.Position).Magnitude
-			local scale = math.clamp(1 / (dist / 40), 0.6, 1.8)
+			local scale = math.clamp(40 / dist, 0.6, 1.8)
 
 			bb.Size = UDim2.fromOffset(80 * scale, 40 * scale)
 			data.label.TextSize = 14 * scale
 		end
+	end	
+	if fakeCursorGui.Enabled then
+		local mousePos = UserInputService:GetMouseLocation()
+		fakeCursor.Position = UDim2.fromOffset(
+			mousePos.X,
+			mousePos.Y
+		)
 	end
 end)
 
