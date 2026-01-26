@@ -1,4 +1,6 @@
+--------------------------------------------------
 -- SERVICES
+--------------------------------------------------
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -8,143 +10,111 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 --------------------------------------------------
--- GUI
+-- GUI ROOT
 --------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "AdminAimGui"
+gui.Name = "QZAimGui"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.DisplayOrder = 999999
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 --------------------------------------------------
--- CTRL MODAL IMAGEBUTTON (UNLOCK MOUSE)
+-- ESP CONTAINER
 --------------------------------------------------
-local ctrlModalBtn = Instance.new("ImageButton")
-ctrlModalBtn.Name = "CtrlModal"
-ctrlModalBtn.Size = UDim2.fromScale(0,0)
-ctrlModalBtn.Position = UDim2.fromScale(0,0)
-ctrlModalBtn.BackgroundTransparency = 1
-ctrlModalBtn.ImageTransparency = 1
-ctrlModalBtn.AutoButtonColor = false
-ctrlModalBtn.Visible = false
-ctrlModalBtn.Active = true
-ctrlModalBtn.Modal = true
-ctrlModalBtn.ZIndex = 0
-ctrlModalBtn.Parent = gui
+local espFolder = Instance.new("Folder")
+espFolder.Name = "ESPContainer"
+espFolder.Parent = gui
 
+--------------------------------------------------
+-- FAKE CURSOR
+--------------------------------------------------
 local fakeCursorGui = Instance.new("ScreenGui")
-fakeCursorGui.Name = "FakeCursorGui"
 fakeCursorGui.IgnoreGuiInset = true
-fakeCursorGui.DisplayOrder = 1000001
-fakeCursorGui.Parent = LocalPlayer.PlayerGui
+fakeCursorGui.DisplayOrder = 1000000
 fakeCursorGui.Enabled = false
+fakeCursorGui.Parent = LocalPlayer.PlayerGui
 
 local fakeCursor = Instance.new("Frame")
 fakeCursor.Size = UDim2.fromOffset(6,6)
 fakeCursor.AnchorPoint = Vector2.new(0.5,0.5)
-fakeCursor.BackgroundColor3 = Color3.fromRGB(255,255,255)
+fakeCursor.BackgroundColor3 = Color3.new(1,1,1)
 fakeCursor.BorderSizePixel = 0
-fakeCursor.ZIndex = 10
 fakeCursor.Parent = fakeCursorGui
-
 Instance.new("UICorner", fakeCursor).CornerRadius = UDim.new(1,0)
 
-local stroke = Instance.new("UIStroke")
-stroke.Thickness = 1
-stroke.Color = Color3.fromRGB(0,0,0)
-stroke.Parent = fakeCursor
-
-
+--------------------------------------------------
 -- MAIN FRAME
+--------------------------------------------------
 local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(190, 205)
-main.Position = UDim2.fromScale(0.05, 0.4)
-main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.Size = UDim2.fromOffset(190,205)
+main.Position = UDim2.fromScale(0.05,0.4)
+main.BackgroundColor3 = Color3.fromRGB(25,25,25)
 main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = true
 main.Parent = gui
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
 
--- TITLE
+--------------------------------------------------
+-- DRAG LOGIC (NON-DEPRECATED)
+--------------------------------------------------
+do
+	local dragging, dragStart, startPos
+
+	main.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = main.Position
+		end
+	end)
+
+	main.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = input.Position - dragStart
+			main.Position = UDim2.new(
+				startPos.X.Scale, startPos.X.Offset + delta.X,
+				startPos.Y.Scale, startPos.Y.Offset + delta.Y
+			)
+		end
+	end)
+end
+
+--------------------------------------------------
+-- UI ELEMENTS
+--------------------------------------------------
+local function createButton(text, y)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1,-20,0,40)
+	btn.Position = UDim2.fromOffset(10,y)
+	btn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+	btn.Text = text
+	btn.Font = Enum.Font.LuckiestGuy
+	btn.TextSize = 15
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.BorderSizePixel = 0
+	btn.Parent = main
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
+	return btn
+end
+
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
+title.Size = UDim2.new(1,0,0,30)
 title.BackgroundTransparency = 1
-title.Text = "QZ Aimbot"
-title.TextColor3 = Color3.fromRGB(58, 25, 140)
-title.TextStrokeTransparency = 0
-title.TextStrokeColor3 = Color3.new(1,1,1)
+title.Text = "QZ AIM"
+title.TextColor3 = Color3.fromRGB(120,80,255)
 title.Font = Enum.Font.LuckiestGuy
 title.TextSize = 16
 title.Parent = main
 
--- CTRL HINT
-local ctrlHint = Instance.new("TextLabel")
-ctrlHint.Size = UDim2.new(1, -20, 0, 16)
-ctrlHint.Position = UDim2.fromOffset(10, 28)
-ctrlHint.BackgroundTransparency = 1
-ctrlHint.Text = "hold CTRL to unlock mouse"
-ctrlHint.TextColor3 = Color3.fromRGB(180,180,180)
-ctrlHint.TextStrokeTransparency = 0.6
-ctrlHint.Font = Enum.Font.PatrickHand
-ctrlHint.TextSize = 16
-ctrlHint.TextXAlignment = Enum.TextXAlignment.Center
-ctrlHint.Parent = main
-
---------------------------------------------------
--- BUTTON STYLE
---------------------------------------------------
-local function styleButton(btn)
-	btn.TextColor3 = Color3.new(1,1,1)
-	btn.TextStrokeTransparency = 1
-	btn.Font = Enum.Font.LuckiestGuy
-	btn.TextSize = 15
-	btn.BorderSizePixel = 0
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
-end
-
---------------------------------------------------
--- BUTTONS
---------------------------------------------------
-local aimBtn = Instance.new("TextButton")
-aimBtn.Size = UDim2.new(1,-20,0,40)
-aimBtn.Position = UDim2.fromOffset(10,50)
-aimBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-aimBtn.Text = "AIM : OFF (B)"
-aimBtn.Parent = main
-styleButton(aimBtn)
-
-local teamBtn = Instance.new("TextButton")
-teamBtn.Size = UDim2.new(1,-20,0,40)
-teamBtn.Position = UDim2.fromOffset(10,95)
-teamBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-teamBtn.Text = "TEAMMATE CHECK : OFF"
-teamBtn.Parent = main
-styleButton(teamBtn)
-
-local espBtn = Instance.new("TextButton")
-espBtn.Size = UDim2.new(1,-20,0,40)
-espBtn.Position = UDim2.fromOffset(10,140)
-espBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-espBtn.Text = "ESP : OFF"
-espBtn.Parent = main
-styleButton(espBtn)
-
---------------------------------------------------
--- COLLAPSE BUTTON
---------------------------------------------------
-local collapseBtn = Instance.new("TextButton")
-collapseBtn.Size = UDim2.fromOffset(30,30)
-collapseBtn.Position = UDim2.new(1,-35,0,0)
-collapseBtn.BackgroundTransparency = 1
-collapseBtn.Text = "–"
-collapseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-collapseBtn.TextStrokeTransparency = 0
-collapseBtn.Font = Enum.Font.LuckiestGuy
-collapseBtn.TextSize = 26
-collapseBtn.Parent = main
+local aimBtn = createButton("AIM : OFF (B)",50)
+local teamBtn = createButton("TEAM CHECK : OFF",95)
+local espBtn = createButton("ESP : OFF",140)
 
 --------------------------------------------------
 -- STATE
@@ -152,142 +122,57 @@ collapseBtn.Parent = main
 local aiming = false
 local teammateCheck = false
 local espEnabled = false
-local mouseUnlockedByCtrl = false
-local isCollapsed = false
-local aimConnection
-local espGuis = {}
+local unlockMouse = false
 
-local expandedSize = main.Size
-local collapsedSize = UDim2.fromOffset(190,45)
+local aimConn
+local espData = {}
 
 --------------------------------------------------
--- COLLAPSE / EXPAND (SMOOTH)
+-- ESP FUNCTIONS
 --------------------------------------------------
-local function tweenMenu(collapse)
-	isCollapsed = collapse
-	collapseBtn.Text = collapse and "+" or "–"
-
-	local info = TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-	TweenService:Create(main, info, {
-		Size = collapse and collapsedSize or expandedSize
-	}):Play()
-
-	for _,v in ipairs(main:GetChildren()) do
-		if v:IsA("TextButton") and v ~= collapseBtn then
-			TweenService:Create(v, info, {
-				BackgroundTransparency = collapse and 1 or 0,
-				TextTransparency = collapse and 1 or 0
-			}):Play()
-		end
+local function removeESP(plr)
+	if espData[plr] then
+		espData[plr]:Destroy()
+		espData[plr] = nil
 	end
 end
 
-collapseBtn.MouseButton1Click:Connect(function()
-	tweenMenu(not isCollapsed)
-end)
+local function createESP(plr)
+	if espData[plr] then return end
+	if teammateCheck and plr.Team == LocalPlayer.Team then return end
+	if not plr.Character then return end
 
-local function getScale(distance)
-	return math.clamp(1 / (distance / 35), 0.6, 1.6)
-end
-
--- ESP GUI
-local function createESP(player)
-	if espGuis[player] then return end
-	if teammateCheck and player.Team == LocalPlayer.Team then return end
-
-	local char = player.Character
-	if not char then return end
-
-	local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-	if not root then return end
+	local root = plr.Character:FindFirstChild("HumanoidRootPart")
+	local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+	if not root or not hum or hum.Health <= 0 then return end
 
 	local bb = Instance.new("BillboardGui")
-	bb.Name = "SimpleESP"
-	bb.Adornee = root
+	bb.Size = UDim2.fromOffset(80,40)
 	bb.AlwaysOnTop = true
-	bb.StudsOffset = Vector3.new(0, 3, 0)
-	bb.Size = UDim2.fromOffset(80, 40)
-	bb.Parent = LocalPlayer:WaitForChild("PlayerGui")
+	bb.StudsOffset = Vector3.new(0,3,0)
+	bb.Adornee = root
+	bb.Parent = espFolder
 
-	local text = Instance.new("TextLabel")
-	text.Size = UDim2.fromScale(1,1)
-	text.BackgroundTransparency = 1
-	text.TextColor3 = Color3.fromRGB(255,255,255)
-	text.TextStrokeTransparency = 0
-	text.TextStrokeColor3 = Color3.new(0,0,0)
-	text.Font = Enum.Font.GothamBold
-	text.TextSize = 14
-	text.TextWrapped = true
-	text.TextYAlignment = Enum.TextYAlignment.Center
-	text.Parent = bb
+	local txt = Instance.new("TextLabel")
+	txt.Size = UDim2.fromScale(1,1)
+	txt.BackgroundTransparency = 1
+	txt.TextColor3 = Color3.new(1,1,1)
+	txt.TextStrokeTransparency = 0
+	txt.Font = Enum.Font.GothamBold
+	txt.TextSize = 14
+	txt.Parent = bb
 
-	espGuis[player] = {
-		gui = bb,
-		label = text
-	}
-end
+	espData[plr] = bb
 
-local function removeESP(player)
-	if espGuis[player] then
-		espGuis[player].gui:Destroy()
-		espGuis[player] = nil
-	end
-end
-
-RunService.RenderStepped:Connect(function()
-	for plr,data in pairs(espGuis) do
-		local char = plr.Character
-		if not char then
+	RunService.RenderStepped:Connect(function()
+		if not bb.Parent or hum.Health <= 0 then
 			removeESP(plr)
-			continue
+			return
 		end
 
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-
-		if not hum or hum.Health <= 0 or not root then
-			removeESP(plr)
-		else
-			data.gui.Adornee = root
-			data.label.Text = plr.Name .. "\n" .. math.floor(hum.Health)
-
-			local dist = (Camera.CFrame.Position - root.Position).Magnitude
-			local scale = math.clamp(40 / dist, 0.6, 1.8)
-
-			data.gui.Size = UDim2.fromOffset(80 * scale, 40 * scale)
-			data.label.TextSize = 14 * scale
-		end
-	end
-end)
-
-local function hookPlayer(player)
-	-- nếu ESP đang bật và character đã tồn tại
-	if espEnabled and player.Character then
-		createESP(player)
-	end
-
-	player.CharacterAdded:Connect(function()
-		task.wait(0.3)
-		if espEnabled then
-			removeESP(player)
-			createESP(player)
-		end
+		txt.Text = plr.Name .. "\n" .. math.floor(hum.Health)
 	end)
 end
-
-
-for _,plr in ipairs(Players:GetPlayers()) do
-	if plr ~= LocalPlayer then
-		hookPlayer(plr)
-	end
-end
-
-Players.PlayerAdded:Connect(function(plr)
-	if plr ~= LocalPlayer then
-		hookPlayer(plr)
-	end
-end)
-Players.PlayerRemoving:Connect(removeESP)
 
 local function refreshESP()
 	for _,plr in ipairs(Players:GetPlayers()) do
@@ -302,22 +187,28 @@ local function refreshESP()
 end
 
 --------------------------------------------------
--- AIM LOGIC
+-- AIM (SCREEN CENTER BASED)
 --------------------------------------------------
-local function getClosestHead()
-	local closest, dist = nil, math.huge
+local function getClosestToCenter()
+	local closest, bestDist
+	local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+
 	for _,plr in ipairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer and plr.Character and
-			(not teammateCheck or plr.Team ~= LocalPlayer.Team) then
+		if plr ~= LocalPlayer
+			and plr.Character
+			and (not teammateCheck or plr.Team ~= LocalPlayer.Team) then
 
-			local hum = plr.Character:FindFirstChildOfClass("Humanoid")
 			local head = plr.Character:FindFirstChild("Head")
+			local hum = plr.Character:FindFirstChildOfClass("Humanoid")
 
-			if hum and hum.Health > 0 and head then
-				local d = (head.Position - Camera.CFrame.Position).Magnitude
-				if d < dist then
-					dist = d
-					closest = head
+			if head and hum and hum.Health > 0 then
+				local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+				if onScreen then
+					local dist = (Vector2.new(pos.X,pos.Y) - center).Magnitude
+					if not bestDist or dist < bestDist then
+						bestDist = dist
+						closest = head
+					end
 				end
 			end
 		end
@@ -325,121 +216,84 @@ local function getClosestHead()
 	return closest
 end
 
-local function updateMouseState()
-	if mouseUnlockedByCtrl then
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		UserInputService.MouseIconEnabled = true
-	elseif aiming then
-		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-		UserInputService.MouseIconEnabled = false
-	else
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		UserInputService.MouseIconEnabled = true
-	end
-end
-
 local function startAim()
-	if aimConnection then return end
+	if aimConn then return end
+	aimConn = RunService.RenderStepped:Connect(function()
+		if unlockMouse then return end
+		if Camera.CameraType ~= Enum.CameraType.Custom then return end
 
-	aimConnection = RunService.RenderStepped:Connect(function()
-		if mouseUnlockedByCtrl then return end
-		local head = getClosestHead()
+		local head = getClosestToCenter()
 		if head then
 			Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
 		end
 	end)
-
-	updateMouseState()
 end
 
 local function stopAim()
-	if aimConnection then
-		aimConnection:Disconnect()
-		aimConnection = nil
+	if aimConn then
+		aimConn:Disconnect()
+		aimConn = nil
 	end
-	updateMouseState()
-end
-
---------------------------------------------------
--- UI UPDATE
---------------------------------------------------
-local function updateAimUI()
-	if aiming then
-		aimBtn.Text = "AIM : ON (B)"
-		aimBtn.BackgroundColor3 = Color3.fromRGB(60,200,60)
-		startAim()
-	else
-		aimBtn.Text = "AIM : OFF (B)"
-		aimBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-		stopAim()
-	end
-end
-
-local function updateTeamUI()
-	teamBtn.Text = teammateCheck and "TEAMMATE CHECK : ON" or "TEAMMATE CHECK : OFF"
-	teamBtn.BackgroundColor3 = teammateCheck and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
-	refreshESP()
-end
-
-local function updateESPUI()
-	espBtn.Text = espEnabled and "ESP : ON" or "ESP : OFF"
-	espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
-	refreshESP()
 end
 
 --------------------------------------------------
 -- INPUT
 --------------------------------------------------
+UserInputService.InputBegan:Connect(function(i,gp)
+	if gp then return end
+
+	if i.KeyCode == Enum.KeyCode.B then
+		aiming = not aiming
+		aimBtn.Text = aiming and "AIM : ON (B)" or "AIM : OFF (B)"
+		aimBtn.BackgroundColor3 = aiming and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
+		if aiming then startAim() else stopAim() end
+	end
+
+	if i.KeyCode == Enum.KeyCode.LeftControl then
+		unlockMouse = true
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		fakeCursorGui.Enabled = true
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(i)
+	if i.KeyCode == Enum.KeyCode.LeftControl then
+		unlockMouse = false
+		fakeCursorGui.Enabled = false
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if fakeCursorGui.Enabled then
+		local pos = UserInputService:GetMouseLocation()
+		fakeCursor.Position = UDim2.fromOffset(pos.X,pos.Y)
+	end
+end)
+
+--------------------------------------------------
+-- BUTTON EVENTS
+--------------------------------------------------
 aimBtn.MouseButton1Click:Connect(function()
-	aiming = not aiming
-	updateAimUI()
+	UserInputService.InputBegan:Fire({
+		KeyCode = Enum.KeyCode.B
+	},false)
 end)
 
 teamBtn.MouseButton1Click:Connect(function()
 	teammateCheck = not teammateCheck
-	updateTeamUI()
+	teamBtn.Text = teammateCheck and "TEAM CHECK : ON" or "TEAM CHECK : OFF"
+	teamBtn.BackgroundColor3 = teammateCheck and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
+	refreshESP()
 end)
 
 espBtn.MouseButton1Click:Connect(function()
 	espEnabled = not espEnabled
-	updateESPUI()
+	espBtn.Text = espEnabled and "ESP : ON" or "ESP : OFF"
+	espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
+	refreshESP()
 end)
 
-UserInputService.InputBegan:Connect(function(input, gp)
-	if gp then return end
-
-	if input.KeyCode == Enum.KeyCode.B then
-		aiming = not aiming
-		updateAimUI()
-	end
-
-	if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
-		mouseUnlockedByCtrl = true
-
-		ctrlModalBtn.Visible = true
-		fakeCursorGui.Enabled = true
-
-		updateMouseState()
-		UserInputService.MouseIconEnabled = true
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
-		mouseUnlockedByCtrl = false
-
-		ctrlModalBtn.Visible = false
-		fakeCursorGui.Enabled = false
-
-		updateMouseState()
-	end
-end)
-
+--------------------------------------------------
+-- PLAYER HANDLING
+--------------------------------------------------
 Players.PlayerRemoving:Connect(removeESP)
-
---------------------------------------------------
--- INIT
---------------------------------------------------
-updateAimUI()
-updateTeamUI()
-updateESPUI()
