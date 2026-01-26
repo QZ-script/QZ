@@ -336,6 +336,7 @@ local function stopAim()
 		aimConnection:Disconnect()
 		aimConnection = nil
 	end
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 end
 
 --------------------------------------------------
