@@ -196,13 +196,22 @@ end
 local function createESP(player)
 	if espGuis[player] then return end
 	if teammateCheck and player.Team == LocalPlayer.Team then return end
+	
+	local function getCharacterParts(char)
+		local hum = char:WaitForChild("Humanoid", 5)
+		local root = char:WaitForChild("HumanoidRootPart", 5)
+			or char:WaitForChild("Torso", 5)
+
+		if hum and root then
+			return hum, root
+		end
+	end
 
 	local char = player.Character
+	local hum, root = getCharacterParts(char)
+	if not hum or not root then return end
 	if not char then return end
 
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-	if not hum or not root then return end
 
 	local bb = Instance.new("BillboardGui")
 	bb.Name = "SimpleESP"
@@ -287,7 +296,11 @@ for _,plr in ipairs(Players:GetPlayers()) do
 	end
 end
 
-Players.PlayerAdded:Connect(hookPlayer)
+Players.PlayerAdded:Connect(function(plr)
+	if plr ~= LocalPlayer then
+		hookPlayer(plr)
+	end
+end)
 Players.PlayerRemoving:Connect(removeESP)
 
 local function refreshESP()
@@ -326,15 +339,28 @@ local function getClosestHead()
 	return closest
 end
 
+local function updateMouseState()
+	if mouseUnlockedByCtrl then
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		UserInputService.MouseIconEnabled = true
+	elseif aiming then
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+		UserInputService.MouseIconEnabled = false
+	else
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		UserInputService.MouseIconEnabled = true
+	end
+end
+
 local function startAim()
 	aimConnection = RunService.RenderStepped:Connect(function()
 		if mouseUnlockedByCtrl then return end
 		local head = getClosestHead()
 		if head then
-			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 			Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
 		end
 	end)
+	updateMouseState()
 end
 
 local function stopAim()
@@ -342,7 +368,7 @@ local function stopAim()
 		aimConnection:Disconnect()
 		aimConnection = nil
 	end
-	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	updateMouseState()
 end
 
 --------------------------------------------------
@@ -404,7 +430,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
 		ctrlModalBtn.Visible = true
 		fakeCursorGui.Enabled = true
 
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		updateMouseState()
 		UserInputService.MouseIconEnabled = true
 	end
 end)
@@ -416,13 +442,7 @@ UserInputService.InputEnded:Connect(function(input)
 		ctrlModalBtn.Visible = false
 		fakeCursorGui.Enabled = false
 
-		UserInputService.MouseIconEnabled = false
-
-		if aiming then
-			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-		else
-			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		end
+		updateMouseState()
 	end
 end)
 
