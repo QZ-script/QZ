@@ -1,27 +1,27 @@
---// SERVICES
+-- SERVICES
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
---// PLAYER
+-- VARIABLES
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
---// SETTINGS
 local espEnabled = true
+local teammateCheck = false
 local aimEnabled = false
-local teammateCheck = true
 
---// STORAGE
 local ESPObjects = {}
 
---------------------------------------------------
+----------------------------------------------------------------
 -- ESP FUNCTIONS
---------------------------------------------------
+----------------------------------------------------------------
 
 local function removeESP(plr)
 	if ESPObjects[plr] then
-		ESPObjects[plr]:Destroy()
+		for _,v in pairs(ESPObjects[plr]) do
+			pcall(function() v:Destroy() end)
+		end
 		ESPObjects[plr] = nil
 	end
 end
@@ -31,60 +31,63 @@ local function createESP(plr)
 	if ESPObjects[plr] then return end
 
 	local box = Drawing.new("Square")
-	box.Thickness = 1.5
+	box.Thickness = 1
 	box.Filled = false
 	box.Transparency = 1
-	box.Color = Color3.fromRGB(255, 0, 0)
 
-	ESPObjects[plr] = box
+	local name = Drawing.new("Text")
+	name.Size = 13
+	name.Center = true
+	name.Outline = true
+	name.Text = plr.Name
+
+	ESPObjects[plr] = {box, name}
 end
+
+----------------------------------------------------------------
+-- PLAYER HOOK
+----------------------------------------------------------------
 
 local function hookPlayer(plr)
 	if plr == LocalPlayer then return end
 
-	-- Tạo ESP khi character load xong
+	if espEnabled then
+		createESP(plr)
+	end
+
+	-- FIX: tạo lại ESP khi player respawn (KHÔNG phụ thuộc LocalPlayer)
 	plr.CharacterAdded:Connect(function(char)
 		if not espEnabled then return end
 
 		local hum = char:WaitForChild("Humanoid", 5)
 		local root = char:WaitForChild("HumanoidRootPart", 5)
-
 		if hum and root then
 			removeESP(plr)
 			createESP(plr)
 		end
 	end)
-
-	-- Nếu player đã có character sẵn
-	if plr.Character and espEnabled then
-		createESP(plr)
-	end
 end
 
---------------------------------------------------
--- PLAYER CONNECTIONS
---------------------------------------------------
+----------------------------------------------------------------
+-- INITIAL PLAYERS
+----------------------------------------------------------------
 
-for _, plr in ipairs(Players:GetPlayers()) do
+for _,plr in ipairs(Players:GetPlayers()) do
 	hookPlayer(plr)
 end
 
-Players.PlayerAdded:Connect(function(plr)
-	hookPlayer(plr)
-end)
+Players.PlayerAdded:Connect(hookPlayer)
+Players.PlayerRemoving:Connect(removeESP)
 
-Players.PlayerRemoving:Connect(function(plr)
-	removeESP(plr)
-end)
-
---------------------------------------------------
--- REFRESH ESP (SAFE)
---------------------------------------------------
+----------------------------------------------------------------
+-- REFRESH ESP (DÙNG KHI TOGGLE / LOCAL RESPAWN)
+----------------------------------------------------------------
 
 local function refreshESP()
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _,plr in ipairs(Players:GetPlayers()) do
 		if plr ~= LocalPlayer then
 			if espEnabled then
+				removeESP(plr)
 				createESP(plr)
 			else
 				removeESP(plr)
@@ -93,75 +96,82 @@ local function refreshESP()
 	end
 end
 
---------------------------------------------------
+----------------------------------------------------------------
 -- FIX LOCALPLAYER RESPAWN (QUAN TRỌNG)
---------------------------------------------------
+----------------------------------------------------------------
 
 LocalPlayer.CharacterAdded:Connect(function()
+	if not espEnabled then return end
+
 	-- đợi camera + character ổn định
 	LocalPlayer.Character:WaitForChild("HumanoidRootPart", 5)
 	task.wait(0.2)
 
-	if espEnabled then
-		refreshESP()
-	end
+	refreshESP()
 end)
 
---------------------------------------------------
--- ESP UPDATE LOOP (FIX SẠCH BUG)
---------------------------------------------------
+----------------------------------------------------------------
+-- ESP RENDER LOOP (ĐÃ FIX LOGIC XOÁ SAI)
+----------------------------------------------------------------
 
 RunService.RenderStepped:Connect(function()
 	if not espEnabled then return end
 
-	for plr, box in pairs(ESPObjects) do
-		if not plr.Character then
-			-- character chưa replicate → KHÔNG remove
+	for plr,objs in pairs(ESPObjects) do
+		local char = plr.Character
+		if not char then
+			-- character chưa replicate → KHÔNG XOÁ
 			continue
 		end
 
-		local char = plr.Character
 		local hum = char:FindFirstChildOfClass("Humanoid")
 		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 
-		-- Chỉ remove khi CHẾT THẬT
+		-- chỉ xoá khi CHẾT THẬT
 		if hum and hum.Health <= 0 then
 			removeESP(plr)
 			continue
 		end
 
-		-- Root chưa load → chờ
+		-- load chậm → chờ
 		if not root then
 			continue
 		end
 
-		-- Team check
 		if teammateCheck and plr.Team == LocalPlayer.Team then
-			box.Visible = false
+			objs[1].Visible = false
+			objs[2].Visible = false
 			continue
 		end
 
 		local pos, onscreen = Camera:WorldToViewportPoint(root.Position)
 		if not onscreen then
-			box.Visible = false
+			objs[1].Visible = false
+			objs[2].Visible = false
 			continue
 		end
 
-		local scale = math.clamp(300 / (root.Position - Camera.CFrame.Position).Magnitude, 2, 6)
-		box.Size = Vector2.new(20 * scale, 30 * scale)
-		box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
-		box.Visible = true
+		local size = math.clamp(2000 / pos.Z, 20, 300)
+
+		objs[1].Size = Vector2.new(size, size * 1.5)
+		objs[1].Position = Vector2.new(pos.X - size/2, pos.Y - size/2)
+		objs[1].Color = Color3.fromRGB(255, 0, 0)
+		objs[1].Visible = true
+
+		objs[2].Position = Vector2.new(pos.X, pos.Y - size/2 - 14)
+		objs[2].Color = Color3.fromRGB(255, 255, 255)
+		objs[2].Visible = true
 	end
 end)
 
---------------------------------------------------
+----------------------------------------------------------------
 -- AIM LOGIC (GIỮ NGUYÊN)
---------------------------------------------------
+----------------------------------------------------------------
 
 local function getClosestHead()
 	local closest, dist = nil, math.huge
 
-	for _, plr in ipairs(Players:GetPlayers()) do
+	for _,plr in ipairs(Players:GetPlayers()) do
 		if plr ~= LocalPlayer and plr.Character then
 			if not teammateCheck or plr.Team ~= LocalPlayer.Team then
 				local hum = plr.Character:FindFirstChildOfClass("Humanoid")
@@ -180,29 +190,3 @@ local function getClosestHead()
 
 	return closest
 end
-
-RunService.RenderStepped:Connect(function()
-	if not aimEnabled then return end
-
-	local head = getClosestHead()
-	if head then
-		Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
-	end
-end)
-
---------------------------------------------------
--- TOGGLES (EXAMPLE)
---------------------------------------------------
-
-UserInputService.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-
-	if input.KeyCode == Enum.KeyCode.E then
-		espEnabled = not espEnabled
-		refreshESP()
-	end
-
-	if input.KeyCode == Enum.KeyCode.Q then
-		aimEnabled = not aimEnabled
-	end
-end)
