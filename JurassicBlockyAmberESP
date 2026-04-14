@@ -9,7 +9,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Biến kiểm soát trạng thái ESP và Speed Buff
 local espEnabled = true
 local speedBuffEnabled = false
-local SPEED_LOCK_VALUE = 85
+local SPEED_LOCK_VALUE = 100
 local activeGuis = {}
 
 -- Chờ thư mục load
