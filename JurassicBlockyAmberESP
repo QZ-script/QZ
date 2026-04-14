@@ -89,7 +89,7 @@ ultraSpeedBtn.Size = UDim2.new(0.8, 0, 0, 40)
 ultraSpeedBtn.Position = UDim2.new(0.1, 0, 0.725, 0)
 ultraSpeedBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 ultraSpeedBtn.BorderSizePixel = 0
-ultraSpeedBtn.Text = "[RISK] Ultra Speed: OFF"
+ultraSpeedBtn.Text = "(RISK) Ultra Speed: OFF"
 ultraSpeedBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 ultraSpeedBtn.Font = Enum.Font.GothamBold
 ultraSpeedBtn.TextSize = 16
@@ -224,7 +224,7 @@ speedToggleBtn.MouseButton1Click:Connect(function()
 	-- Turn off Ultra Speed if Speed Buff is enabled
 	if speedBuffEnabled and ultraSpeedEnabled then
 		ultraSpeedEnabled = false
-		ultraSpeedBtn.Text = "[RISK] Ultra Speed: OFF"
+		ultraSpeedBtn.Text = "(RISK) Ultra Speed: OFF"
 		ultraSpeedBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 	end
 
@@ -243,7 +243,7 @@ end)
 -- Nút Bật/Tắt Ultra Speed
 ultraSpeedBtn.MouseButton1Click:Connect(function()
 	ultraSpeedEnabled = not ultraSpeedEnabled
-	ultraSpeedBtn.Text = ultraSpeedEnabled and "[RISK] Ultra Speed: ON" or "[RISK] Ultra Speed: OFF"
+	ultraSpeedBtn.Text = ultraSpeedEnabled and "(RISK) Ultra Speed: ON" or "(RISK) Ultra Speed: OFF"
 	ultraSpeedBtn.TextColor3 = ultraSpeedEnabled and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 100, 100)
 
 	-- Turn off Speed Buff if Ultra Speed is enabled
