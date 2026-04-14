@@ -21,7 +21,7 @@ local itemSpawn = Workspace:WaitForChild("ItemSpawn")
 local amberFolder = itemSpawn:WaitForChild("Amber")
 
 ---------------------------------------------------------
--- 1. TẠO GIAO DIỆN PANEL ĐIỀU KHIỂN (GUI)
+-- 1. TẠO GIAO DIỆN PANEL ĐIỀU KHIỂN (GUI) - SỬ DỤNG OFFSET
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "QuantumControl"
@@ -31,8 +31,10 @@ screenGui.Parent = playerGui
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainPanel"
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-mainFrame.Size = UDim2.new(0.15, 0, 0.2, 0)
-mainFrame.Position = UDim2.new(0.2, 0, 0.5, 0)
+-- Sử dụng Offset: Rộng 250px, Cao 175px
+mainFrame.Size = UDim2.new(0, 250, 0, 175) 
+-- Vị trí mặc định trên màn hình (có thể kéo đi chỗ khác)
+mainFrame.Position = UDim2.new(0, 300, 0, 250) 
 mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 2
 mainFrame.BorderColor3 = Color3.fromRGB(0, 255, 255) -- Màu Neon Cyan
@@ -45,8 +47,9 @@ uiCorner.Parent = mainFrame
 
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
-title.Position = UDim2.new(0.5, 0, 0, 20)
-title.Size = UDim2.new(0.85, 0, 0, 20)
+-- Vị trí: Căn giữa theo trục X (125 = 250/2), cách top 17px
+title.Position = UDim2.new(0, 125, 0, 17) 
+title.Size = UDim2.new(0, 150, 0, 20)
 title.BackgroundTransparency = 1
 title.Text = "QZ HUB"
 title.TextColor3 = Color3.fromRGB(0, 255, 255)
@@ -56,8 +59,10 @@ title.Parent = mainFrame
 
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Name = "ToggleESP"
-toggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
-toggleBtn.Position = UDim2.new(0.1, 0, 0.225, 0)
+-- Kích thước: Rộng 210px, Cao 35px
+toggleBtn.Size = UDim2.new(0, 210, 0, 35) 
+-- Vị trí: Cách mép trái 20px, cách mép trên 40px
+toggleBtn.Position = UDim2.new(0, 20, 0, 40) 
 toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 toggleBtn.BorderSizePixel = 0
 toggleBtn.Text = "ESP: ON"
@@ -73,8 +78,9 @@ btnCorner.Parent = toggleBtn
 -- Speed Buff Toggle Button
 local speedToggleBtn = Instance.new("TextButton")
 speedToggleBtn.Name = "ToggleSpeedBuff"
-speedToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
-speedToggleBtn.Position = UDim2.new(0.1, 0, 0.475, 0)
+speedToggleBtn.Size = UDim2.new(0, 210, 0, 35)
+-- Dịch nút này xuống dưới nút ESP (cách top 85px)
+speedToggleBtn.Position = UDim2.new(0, 20, 0, 85) 
 speedToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 speedToggleBtn.BorderSizePixel = 0
 speedToggleBtn.Text = "Speed Hack: OFF"
@@ -90,8 +96,9 @@ speedBtnCorner.Parent = speedToggleBtn
 -- Ultra Speed Toggle Button
 local ultraSpeedBtn = Instance.new("TextButton")
 ultraSpeedBtn.Name = "ToggleUltraSpeed"
-ultraSpeedBtn.Size = UDim2.new(0.8, 0, 0, 40)
-ultraSpeedBtn.Position = UDim2.new(0.1, 0, 0.725, 0)
+ultraSpeedBtn.Size = UDim2.new(0, 210, 0, 35)
+-- Dịch nút này xuống dưới cùng (cách top 130px)
+ultraSpeedBtn.Position = UDim2.new(0, 20, 0, 130) 
 ultraSpeedBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 ultraSpeedBtn.BorderSizePixel = 0
 ultraSpeedBtn.Text = "[MIGHT BUG] God Speed: OFF"
@@ -113,7 +120,7 @@ mainStroke.Parent = mainFrame
 local minimizeBtn = Instance.new("TextButton")
 minimizeBtn.Name = "MinimizeBtn"
 minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
-minimizeBtn.Position = UDim2.new(1, -55, 0, 5)
+minimizeBtn.Position = UDim2.new(0, 190, 0, 5) -- Đặt cứng ở góc phải (190px)
 minimizeBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 minimizeBtn.BorderSizePixel = 0
 minimizeBtn.Text = "-"
@@ -130,7 +137,7 @@ minimizeBtnCorner.Parent = minimizeBtn
 local closeBtn = Instance.new("TextButton")
 closeBtn.Name = "CloseBtn"
 closeBtn.Size = UDim2.new(0, 25, 0, 25)
-closeBtn.Position = UDim2.new(1, -28, 0, 5)
+closeBtn.Position = UDim2.new(0, 220, 0, 5) -- Cạnh nút minimize (220px)
 closeBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 closeBtn.BorderSizePixel = 0
 closeBtn.Text = "X"
@@ -150,7 +157,11 @@ local dragging, dragInput, dragStart, startPos
 
 local function update(input)
 	local delta = input.Position - dragStart
-	mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	-- Khi đã dùng Offset, ta kéo UI bằng cách cộng thêm Delta vào Offset hiện tại
+	mainFrame.Position = UDim2.new(
+		startPos.X.Scale, startPos.X.Offset + delta.X, 
+		startPos.Y.Scale, startPos.Y.Offset + delta.Y
+	)
 end
 
 mainFrame.InputBegan:Connect(function(input)
@@ -181,17 +192,18 @@ end)
 ---------------------------------------------------------
 -- MINIMIZE/CLOSE BUTTONS LOGIC
 ---------------------------------------------------------
-local normalSize = UDim2.new(0.15, 0, 0.2, 0)
-local minimizedSize = UDim2.new(0.15, 0, 0.04, 0)
-local normalTitlePos = UDim2.new(0.5, 0, 0, 13.3)
-local minimizedTitlePos = UDim2.new(0.5, 0, 0.5, 0)
+-- Đã chuyển sang dạng Offset hoàn toàn
+local normalSize = UDim2.new(0, 250, 0, 175) 
+local minimizedSize = UDim2.new(0, 250, 0, 35) -- Khi thu gọn chỉ cao 35px
+local normalTitlePos = UDim2.new(0, 125, 0, 17)
+local minimizedTitlePos = UDim2.new(0, 125, 0, 17) -- Giữ nguyên vị trí chữ khi thu gọn
 local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 local function toggleMinimize()
 	isMinimized = not isMinimized
 	
 	if isMinimized then
-		-- Minimize: shrink panel, hide buttons, change - to +
+		-- Minimize
 		local tween = tweenService:Create(mainFrame, tweenInfo, {Size = minimizedSize})
 		tween:Play()
 		
@@ -200,12 +212,11 @@ local function toggleMinimize()
 		
 		minimizeBtn.Text = "+"
 		
-		-- Hide toggle buttons
 		toggleBtn.Visible = false
 		speedToggleBtn.Visible = false
 		ultraSpeedBtn.Visible = false
 	else
-		-- Expand: restore panel, show buttons, change + to -
+		-- Expand
 		local tween = tweenService:Create(mainFrame, tweenInfo, {Size = normalSize})
 		tween:Play()
 		
@@ -214,7 +225,6 @@ local function toggleMinimize()
 		
 		minimizeBtn.Text = "-"
 		
-		-- Show toggle buttons
 		toggleBtn.Visible = true
 		speedToggleBtn.Visible = true
 		ultraSpeedBtn.Visible = true
@@ -228,7 +238,7 @@ closeBtn.MouseButton1Click:Connect(function()
 end)
 
 ---------------------------------------------------------
--- 3. LOGIC ESP (TRACKING)
+-- 3. LOGIC ESP & SPEED HACK (Giữ nguyên)
 ---------------------------------------------------------
 
 local function createBillboardGui(amberSpawn, model)
@@ -240,7 +250,7 @@ local function createBillboardGui(amberSpawn, model)
 	billboard.StudsOffset = Vector3.new(0, 4, 0)
 	billboard.AlwaysOnTop = true
 	billboard.MaxDistance = 10000
-	billboard.Enabled = espEnabled -- Trạng thái dựa trên biến điều khiển
+	billboard.Enabled = espEnabled 
 
 	local textLabel = Instance.new("TextLabel")
 	textLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -249,10 +259,9 @@ local function createBillboardGui(amberSpawn, model)
 	textLabel.TextScaled = true
 	textLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
 	textLabel.TextStrokeTransparency = 0.5
-	textLabel.Text = "Amber (calculating...)" -- Hiện text tạm thay vì "Label"
+	textLabel.Text = "Amber (calculating...)"
 	textLabel.Parent = billboard
 
-	-- Gắn vào Model hoặc Part
 	billboard.Adornee = amberSpawn:IsA("BasePart") and amberSpawn or model:FindFirstChildWhichIsA("BasePart", true)
 	billboard.Parent = playerGui
 	activeGuis[amberSpawn] = billboard
@@ -274,7 +283,6 @@ local function checkAmberSpawn(amberSpawn)
 	end
 end
 
--- Theo dõi sự kiện thêm/bớt Model
 local function setupAmberSpawn(amberSpawn)
 	checkAmberSpawn(amberSpawn)
 	amberSpawn.ChildAdded:Connect(function(child)
@@ -285,38 +293,32 @@ local function setupAmberSpawn(amberSpawn)
 	end)
 end
 
--- Khởi tạo ban đầu
 for _, spawnArea in ipairs(amberFolder:GetChildren()) do
 	setupAmberSpawn(spawnArea)
 end
 amberFolder.ChildAdded:Connect(setupAmberSpawn)
 
--- Nút Bật/Tắt ESP
 toggleBtn.MouseButton1Click:Connect(function()
 	espEnabled = not espEnabled
 	toggleBtn.Text = espEnabled and "ESP: ON" or "ESP: OFF"
 	toggleBtn.TextColor3 = espEnabled and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 100, 100)
 
-	-- Cập nhật ngay lập tức các GUI đang hiện
 	for _, gui in pairs(activeGuis) do
 		gui.Enabled = espEnabled
 	end
 end)
 
--- Nút Bật/Tắt Speed Buff
 speedToggleBtn.MouseButton1Click:Connect(function()
 	speedBuffEnabled = not speedBuffEnabled
 	speedToggleBtn.Text = speedBuffEnabled and "Speed Hack: ON" or "Speed Hack: OFF"
 	speedToggleBtn.TextColor3 = speedBuffEnabled and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 100, 100)
 
-	-- Turn off Ultra Speed if Speed Buff is enabled
 	if speedBuffEnabled and ultraSpeedEnabled then
 		ultraSpeedEnabled = false
 		ultraSpeedBtn.Text = "[MIGHT BUG] God Speed: OFF"
 		ultraSpeedBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 	end
 
-	-- Apply speed immediately when enabled
 	if speedBuffEnabled then
 		local character = player.Character
 		if character then
@@ -328,20 +330,17 @@ speedToggleBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Nút Bật/Tắt Ultra Speed
 ultraSpeedBtn.MouseButton1Click:Connect(function()
 	ultraSpeedEnabled = not ultraSpeedEnabled
 	ultraSpeedBtn.Text = ultraSpeedEnabled and "[MIGHT BUG] God Speed: ON" or "[MIGHT BUG] God Speed: OFF"
 	ultraSpeedBtn.TextColor3 = ultraSpeedEnabled and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 100, 100)
 
-	-- Turn off Speed Buff if Ultra Speed is enabled
 	if ultraSpeedEnabled and speedBuffEnabled then
 		speedBuffEnabled = false
 		speedToggleBtn.Text = "Speed Hack: OFF"
 		speedToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 	end
 
-	-- Apply speed immediately when enabled
 	if ultraSpeedEnabled then
 		local character = player.Character
 		if character then
@@ -353,9 +352,7 @@ ultraSpeedBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Vòng lặp cập nhật khoảng cách và Speed Buff
 RunService.RenderStepped:Connect(function()
-	-- Speed Buff Logic - Lock speed (Ultra Speed takes priority)
 	local targetSpeed = nil
 	if ultraSpeedEnabled then
 		targetSpeed = ULTRA_SPEED_VALUE
@@ -373,7 +370,7 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 
-	if not espEnabled then return end -- Tiết kiệm hiệu năng nếu tắt ESP
+	if not espEnabled then return end
 
 	local character = player.Character
 	local rootPart = character and character:FindFirstChild("HumanoidRootPart")
