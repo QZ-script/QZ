@@ -13,6 +13,8 @@ local ultraSpeedEnabled = false
 local SPEED_LOCK_VALUE = 90
 local ULTRA_SPEED_VALUE = 150
 local activeGuis = {}
+local isMinimized = false
+local tweenService = game:GetService("TweenService")
 
 -- Chờ thư mục load
 local itemSpawn = Workspace:WaitForChild("ItemSpawn")
@@ -43,13 +45,13 @@ uiCorner.Parent = mainFrame
 
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
-title.Position = UDim2.new(0.5, 0, 0.1, 0)
-title.Size = UDim2.new(.85, 0, 0.15, 0)
+title.Position = UDim2.new(0.5, 0, 0, 20)
+title.Size = UDim2.new(0.85, 0, 0, 20)
 title.BackgroundTransparency = 1
-title.Text = "QUANTUM AMBER ESP"
+title.Text = "QZ HUB"
 title.TextColor3 = Color3.fromRGB(0, 255, 255)
 title.Font = Enum.Font.GothamBold
-title.TextScaled = true
+title.TextSize = 20
 title.Parent = mainFrame
 
 local toggleBtn = Instance.new("TextButton")
@@ -107,6 +109,40 @@ mainStroke.Color = Color3.fromRGB(0, 255, 255)
 mainStroke.Thickness = 2
 mainStroke.Parent = mainFrame
 
+-- Minimize Button (-)
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Name = "MinimizeBtn"
+minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+minimizeBtn.Position = UDim2.new(1, -55, 0, 5)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+minimizeBtn.BorderSizePixel = 0
+minimizeBtn.Text = "-"
+minimizeBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+minimizeBtn.Font = Enum.Font.FredokaOne
+minimizeBtn.TextSize = 18
+minimizeBtn.Parent = mainFrame
+
+local minimizeBtnCorner = Instance.new("UICorner")
+minimizeBtnCorner.CornerRadius = UDim.new(0, 4)
+minimizeBtnCorner.Parent = minimizeBtn
+
+-- Close Button (x)
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "CloseBtn"
+closeBtn.Size = UDim2.new(0, 25, 0, 25)
+closeBtn.Position = UDim2.new(1, -28, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+closeBtn.Font = Enum.Font.FredokaOne
+closeBtn.TextSize = 14
+closeBtn.Parent = mainFrame
+
+local closeBtnCorner = Instance.new("UICorner")
+closeBtnCorner.CornerRadius = UDim.new(0, 4)
+closeBtnCorner.Parent = closeBtn
+
 ---------------------------------------------------------
 -- 2. HÀM XỬ LÝ KÉO PANEL (DRAGGING)
 ---------------------------------------------------------
@@ -140,6 +176,55 @@ UserInputService.InputChanged:Connect(function(input)
 	if input == dragInput and dragging then
 		update(input)
 	end
+end)
+
+---------------------------------------------------------
+-- MINIMIZE/CLOSE BUTTONS LOGIC
+---------------------------------------------------------
+local normalSize = UDim2.new(0.18, 0, 0.32, 0)
+local minimizedSize = UDim2.new(0.18, 0, 0.06, 0)
+local normalTitlePos = UDim2.new(0.5, 0, 0, 20)
+local minimizedTitlePos = UDim2.new(0.5, 0, 0.5, 0)
+local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local function toggleMinimize()
+	isMinimized = not isMinimized
+	
+	if isMinimized then
+		-- Minimize: shrink panel, hide buttons, change - to +
+		local tween = tweenService:Create(mainFrame, tweenInfo, {Size = minimizedSize})
+		tween:Play()
+		
+		local titleTween = tweenService:Create(title, tweenInfo, {Position = minimizedTitlePos})
+		titleTween:Play()
+		
+		minimizeBtn.Text = "+"
+		
+		-- Hide toggle buttons
+		toggleBtn.Visible = false
+		speedToggleBtn.Visible = false
+		ultraSpeedBtn.Visible = false
+	else
+		-- Expand: restore panel, show buttons, change + to -
+		local tween = tweenService:Create(mainFrame, tweenInfo, {Size = normalSize})
+		tween:Play()
+		
+		local titleTween = tweenService:Create(title, tweenInfo, {Position = normalTitlePos})
+		titleTween:Play()
+		
+		minimizeBtn.Text = "-"
+		
+		-- Show toggle buttons
+		toggleBtn.Visible = true
+		speedToggleBtn.Visible = true
+		ultraSpeedBtn.Visible = true
+	end
+end
+
+minimizeBtn.MouseButton1Click:Connect(toggleMinimize)
+
+closeBtn.MouseButton1Click:Connect(function()
+	screenGui:Destroy()
 end)
 
 ---------------------------------------------------------
