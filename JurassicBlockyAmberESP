@@ -1,61 +1,132 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Chờ thư mục xuất hiện trong Workspace để tránh lỗi khi map chưa load xong
+-- Biến kiểm soát trạng thái ESP
+local espEnabled = true
+local activeGuis = {}
+
+-- Chờ thư mục load
 local itemSpawn = Workspace:WaitForChild("ItemSpawn")
 local amberFolder = itemSpawn:WaitForChild("Amber")
 
--- Bảng lưu trữ các UI đang hoạt động
-local activeGuis = {}
+---------------------------------------------------------
+-- 1. TẠO GIAO DIỆN PANEL ĐIỀU KHIỂN (GUI)
+---------------------------------------------------------
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "QuantumControl"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
 
--- Hàm tạo UI hiển thị khoảng cách
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainPanel"
+mainFrame.Size = UDim2.new(0, 180, 0, 100)
+mainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+mainFrame.BorderSizePixel = 2
+mainFrame.BorderColor3 = Color3.fromRGB(0, 255, 255) -- Màu Neon Cyan
+mainFrame.Active = true
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 6)
+uiCorner.Parent = mainFrame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "QUANTUM ESP"
+title.TextColor3 = Color3.fromRGB(0, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+title.Parent = mainFrame
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleESP"
+toggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+toggleBtn.Position = UDim2.new(0.1, 0, 0.45, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+toggleBtn.BorderSizePixel = 0
+toggleBtn.Text = "ESP: ON"
+toggleBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 16
+toggleBtn.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 4)
+btnCorner.Parent = toggleBtn
+
+---------------------------------------------------------
+-- 2. HÀM XỬ LÝ KÉO PANEL (DRAGGING)
+---------------------------------------------------------
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+---------------------------------------------------------
+-- 3. LOGIC ESP (TRACKING)
+---------------------------------------------------------
+
 local function createBillboardGui(amberSpawn, model)
-	-- Nếu đã có UI cho AmberSpawn này rồi thì bỏ qua
 	if activeGuis[amberSpawn] then return end
 
 	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "AmberTracker_" .. amberSpawn.Name
+	billboard.Name = "AmberTracker"
 	billboard.Size = UDim2.new(0, 150, 0, 40)
-	billboard.StudsOffset = Vector3.new(0, 4, 0) -- Nâng UI lên cao 1 chút để không bị lấp
+	billboard.StudsOffset = Vector3.new(0, 4, 0)
 	billboard.AlwaysOnTop = true
-	billboard.MaxDistance = 1000 -- Khoảng cách tối đa (studs) để UI hiển thị
-
-	-- Xác định vật thể để UI bám vào (Adornee)
-	if amberSpawn:IsA("BasePart") then
-		billboard.Adornee = amberSpawn
-	elseif model:IsA("Model") and model.PrimaryPart then
-		billboard.Adornee = model.PrimaryPart
-	else
-		-- Fallback: Nếu model không có PrimaryPart, bám vào part đầu tiên tìm thấy
-		local firstPart = model:FindFirstChildWhichIsA("BasePart", true)
-		if firstPart then
-			billboard.Adornee = firstPart
-		else
-			billboard:Destroy()
-			return
-		end
-	end
+	billboard.MaxDistance = 1000
+	billboard.Enabled = espEnabled -- Trạng thái dựa trên biến điều khiển
 
 	local textLabel = Instance.new("TextLabel")
 	textLabel.Size = UDim2.new(1, 0, 1, 0)
 	textLabel.BackgroundTransparency = 1
-	textLabel.Font = Enum.Font.GothamBold -- Font chữ gọn gàng, hiện đại
+	textLabel.Font = Enum.Font.GothamBold
 	textLabel.TextScaled = true
-	textLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- Màu Neon Cyan
-	textLabel.TextStrokeTransparency = 0.2 -- Viền đen để dễ đọc trên nền sáng
-	textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	textLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+	textLabel.TextStrokeTransparency = 0.5
+	textLabel.Text = "Amber (calculating...)" -- Hiện text tạm thay vì "Label"
 	textLabel.Parent = billboard
 
-	-- Đưa GUI vào PlayerGui (tối ưu cho LocalScript) thay vì vứt bừa vào Workspace
+	-- Gắn vào Model hoặc Part
+	billboard.Adornee = amberSpawn:IsA("BasePart") and amberSpawn or model:FindFirstChildWhichIsA("BasePart", true)
 	billboard.Parent = playerGui
 	activeGuis[amberSpawn] = billboard
 end
 
--- Hàm xóa UI
 local function removeBillboardGui(amberSpawn)
 	if activeGuis[amberSpawn] then
 		activeGuis[amberSpawn]:Destroy()
@@ -63,7 +134,6 @@ local function removeBillboardGui(amberSpawn)
 	end
 end
 
--- Hàm kiểm tra xem bên trong AmberSpawn có Model nào không
 local function checkAmberSpawn(amberSpawn)
 	local model = amberSpawn:FindFirstChildOfClass("Model")
 	if model then
@@ -73,47 +143,48 @@ local function checkAmberSpawn(amberSpawn)
 	end
 end
 
--- Thiết lập các sự kiện theo dõi cho một AmberSpawn cụ thể
+-- Theo dõi sự kiện thêm/bớt Model
 local function setupAmberSpawn(amberSpawn)
-	-- Kiểm tra ngay lần đầu tiên
 	checkAmberSpawn(amberSpawn)
-
-	-- Lắng nghe khi có một vật thể mới (đột nhiên xuất hiện)
 	amberSpawn.ChildAdded:Connect(function(child)
-		if child:IsA("Model") then
-			checkAmberSpawn(amberSpawn)
-		end
+		if child:IsA("Model") then checkAmberSpawn(amberSpawn) end
 	end)
-
-	-- Lắng nghe khi vật thể bị xóa mất
 	amberSpawn.ChildRemoved:Connect(function(child)
-		if child:IsA("Model") then
-			checkAmberSpawn(amberSpawn)
-		end
+		if child:IsA("Model") then checkAmberSpawn(amberSpawn) end
 	end)
 end
 
--- 1. Khởi tạo theo dõi cho các AmberSpawn CÓ SẴN từ trước
+-- Khởi tạo ban đầu
 for _, spawnArea in ipairs(amberFolder:GetChildren()) do
 	setupAmberSpawn(spawnArea)
 end
-
--- 2. Lắng nghe nếu sau này game mới sinh ra thêm các AmberSpawn mới vào folder Amber
 amberFolder.ChildAdded:Connect(setupAmberSpawn)
 
--- 3. Vòng lặp cập nhật khoảng cách liên tục (mỗi frame)
+-- Nút Bật/Tắt ESP
+toggleBtn.MouseButton1Click:Connect(function()
+	espEnabled = not espEnabled
+	toggleBtn.Text = espEnabled and "ESP: ON" or "ESP: OFF"
+	toggleBtn.TextColor3 = espEnabled and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 100, 100)
+	
+	-- Cập nhật ngay lập tức các GUI đang hiện
+	for _, gui in pairs(activeGuis) do
+		gui.Enabled = espEnabled
+	end
+end)
+
+-- Vòng lặp cập nhật khoảng cách
 RunService.RenderStepped:Connect(function()
+	if not espEnabled then return end -- Tiết kiệm hiệu năng nếu tắt ESP
+
 	local character = player.Character
 	local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-
 	if not rootPart then return end
 
-	-- Quét qua tất cả các UI đang bật và tính toán lại con số
 	for amberSpawn, gui in pairs(activeGuis) do
 		local adornee = gui.Adornee
 		if adornee then
 			local distance = math.floor((rootPart.Position - adornee.Position).Magnitude)
-			gui.TextLabel.Text = string.format("Amber (%dm)", distance)
+			gui.TextLabel.Text = "Amber (" .. distance .. "m)"
 		end
 	end
 end)
