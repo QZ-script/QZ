@@ -181,9 +181,9 @@ end)
 ---------------------------------------------------------
 -- MINIMIZE/CLOSE BUTTONS LOGIC
 ---------------------------------------------------------
-local normalSize = UDim2.new(0.18, 0, 0.32, 0)
-local minimizedSize = UDim2.new(0.18, 0, 0.06, 0)
-local normalTitlePos = UDim2.new(0.5, 0, 0, 20)
+local normalSize = UDim2.new(0.15, 0, 0.2, 0)
+local minimizedSize = UDim2.new(0.15, 0, 0.04, 0)
+local normalTitlePos = UDim2.new(0.5, 0, 0, 13.3)
 local minimizedTitlePos = UDim2.new(0.5, 0, 0.5, 0)
 local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
