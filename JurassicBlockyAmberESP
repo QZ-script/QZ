@@ -39,7 +39,7 @@ uiCorner.Parent = mainFrame
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 30)
 title.BackgroundTransparency = 1
-title.Text = "QUANTUM ESP"
+title.Text = "QUANTUM AMBER ESP"
 title.TextColor3 = Color3.fromRGB(0, 255, 255)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 14
@@ -49,7 +49,7 @@ local toggleBtn = Instance.new("TextButton")
 toggleBtn.Name = "ToggleESP"
 toggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
 toggleBtn.Position = UDim2.new(0.1, 0, 0.45, 0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 toggleBtn.BorderSizePixel = 0
 toggleBtn.Text = "ESP: ON"
 toggleBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
@@ -60,6 +60,11 @@ toggleBtn.Parent = mainFrame
 local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 4)
 btnCorner.Parent = toggleBtn
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(0, 255, 255)
+mainStroke.Thickness = 2
+mainStroke.Parent = mainFrame
 
 ---------------------------------------------------------
 -- 2. HÀM XỬ LÝ KÉO PANEL (DRAGGING)
@@ -108,7 +113,7 @@ local function createBillboardGui(amberSpawn, model)
 	billboard.Size = UDim2.new(0, 150, 0, 40)
 	billboard.StudsOffset = Vector3.new(0, 4, 0)
 	billboard.AlwaysOnTop = true
-	billboard.MaxDistance = 1000
+	billboard.MaxDistance = 10000
 	billboard.Enabled = espEnabled -- Trạng thái dựa trên biến điều khiển
 
 	local textLabel = Instance.new("TextLabel")
@@ -165,7 +170,7 @@ toggleBtn.MouseButton1Click:Connect(function()
 	espEnabled = not espEnabled
 	toggleBtn.Text = espEnabled and "ESP: ON" or "ESP: OFF"
 	toggleBtn.TextColor3 = espEnabled and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 100, 100)
-	
+
 	-- Cập nhật ngay lập tức các GUI đang hiện
 	for _, gui in pairs(activeGuis) do
 		gui.Enabled = espEnabled
