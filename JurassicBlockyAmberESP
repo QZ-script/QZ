@@ -6,8 +6,10 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Biến kiểm soát trạng thái ESP
+-- Biến kiểm soát trạng thái ESP và Speed Buff
 local espEnabled = true
+local speedBuffEnabled = false
+local SPEED_LOCK_VALUE = 85
 local activeGuis = {}
 
 -- Chờ thư mục load
@@ -24,7 +26,7 @@ screenGui.Parent = playerGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainPanel"
-mainFrame.Size = UDim2.new(0, 180, 0, 100)
+mainFrame.Size = UDim2.new(0, 180, 0, 165)
 mainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 2
@@ -48,7 +50,7 @@ title.Parent = mainFrame
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Name = "ToggleESP"
 toggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
-toggleBtn.Position = UDim2.new(0.1, 0, 0.45, 0)
+toggleBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 toggleBtn.BorderSizePixel = 0
 toggleBtn.Text = "ESP: ON"
@@ -60,6 +62,23 @@ toggleBtn.Parent = mainFrame
 local btnCorner = Instance.new("UICorner")
 btnCorner.CornerRadius = UDim.new(0, 4)
 btnCorner.Parent = toggleBtn
+
+-- Speed Buff Toggle Button
+local speedToggleBtn = Instance.new("TextButton")
+speedToggleBtn.Name = "ToggleSpeedBuff"
+speedToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+speedToggleBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+speedToggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+speedToggleBtn.BorderSizePixel = 0
+speedToggleBtn.Text = "Speed Hack: OFF"
+speedToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+speedToggleBtn.Font = Enum.Font.GothamBold
+speedToggleBtn.TextSize = 16
+speedToggleBtn.Parent = mainFrame
+
+local speedBtnCorner = Instance.new("UICorner")
+speedBtnCorner.CornerRadius = UDim.new(0, 4)
+speedBtnCorner.Parent = speedToggleBtn
 
 local mainStroke = Instance.new("UIStroke")
 mainStroke.Color = Color3.fromRGB(0, 255, 255)
@@ -177,8 +196,37 @@ toggleBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Vòng lặp cập nhật khoảng cách
+-- Nút Bật/Tắt Speed Buff
+speedToggleBtn.MouseButton1Click:Connect(function()
+	speedBuffEnabled = not speedBuffEnabled
+	speedToggleBtn.Text = speedBuffEnabled and "Speed Hack: ON" or "Speed Hack: OFF"
+	speedToggleBtn.TextColor3 = speedBuffEnabled and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 100, 100)
+
+	-- Apply speed immediately when enabled
+	if speedBuffEnabled then
+		local character = player.Character
+		if character then
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid.WalkSpeed = SPEED_LOCK_VALUE
+			end
+		end
+	end
+end)
+
+-- Vòng lặp cập nhật khoảng cách và Speed Buff
 RunService.RenderStepped:Connect(function()
+	-- Speed Buff Logic - Lock speed at 85
+	if speedBuffEnabled then
+		local character = player.Character
+		if character then
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if humanoid and humanoid.WalkSpeed ~= SPEED_LOCK_VALUE then
+				humanoid.WalkSpeed = SPEED_LOCK_VALUE
+			end
+		end
+	end
+
 	if not espEnabled then return end -- Tiết kiệm hiệu năng nếu tắt ESP
 
 	local character = player.Character
