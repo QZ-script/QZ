@@ -56,19 +56,23 @@ stroke.Thickness = 1
 stroke.Color = Color3.fromRGB(0,0,0)
 stroke.Parent = fakeCursor
 
-
+--------------------------------------------------
 -- MAIN FRAME
+--------------------------------------------------
 local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(190, 205)
+main.Size = UDim2.fromOffset(190, 250)
 main.Position = UDim2.fromScale(0.05, 0.4)
 main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
 main.Parent = gui
+
 Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
 
+--------------------------------------------------
 -- TITLE
+--------------------------------------------------
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 30)
 title.BackgroundTransparency = 1
@@ -80,7 +84,9 @@ title.Font = Enum.Font.LuckiestGuy
 title.TextSize = 16
 title.Parent = main
 
+--------------------------------------------------
 -- CTRL HINT
+--------------------------------------------------
 local ctrlHint = Instance.new("TextLabel")
 ctrlHint.Size = UDim2.new(1, -20, 0, 16)
 ctrlHint.Position = UDim2.fromOffset(10, 28)
@@ -102,6 +108,7 @@ local function styleButton(btn)
 	btn.Font = Enum.Font.LuckiestGuy
 	btn.TextSize = 15
 	btn.BorderSizePixel = 0
+
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
 end
 
@@ -132,6 +139,14 @@ espBtn.Text = "ESP : OFF"
 espBtn.Parent = main
 styleButton(espBtn)
 
+local shootBtn = Instance.new("TextButton")
+shootBtn.Size = UDim2.new(1,-20,0,40)
+shootBtn.Position = UDim2.fromOffset(10,185)
+shootBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+shootBtn.Text = "AUTO SHOOT : OFF"
+shootBtn.Parent = main
+styleButton(shootBtn)
+
 --------------------------------------------------
 -- COLLAPSE BUTTON
 --------------------------------------------------
@@ -140,7 +155,7 @@ collapseBtn.Size = UDim2.fromOffset(30,30)
 collapseBtn.Position = UDim2.new(1,-35,0,0)
 collapseBtn.BackgroundTransparency = 1
 collapseBtn.Text = "–"
-collapseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+collapseBtn.TextColor3 = Color3.fromRGB(255,255,255)
 collapseBtn.TextStrokeTransparency = 0
 collapseBtn.Font = Enum.Font.LuckiestGuy
 collapseBtn.TextSize = 26
@@ -152,22 +167,32 @@ collapseBtn.Parent = main
 local aiming = false
 local teammateCheck = false
 local espEnabled = false
+local autoShoot = false
+
 local mouseUnlockedByCtrl = false
 local isCollapsed = false
+
 local aimConnection
 local espGuis = {}
+
+local shootDebounce = false
 
 local expandedSize = main.Size
 local collapsedSize = UDim2.fromOffset(190,45)
 
 --------------------------------------------------
--- COLLAPSE / EXPAND (SMOOTH)
+-- COLLAPSE / EXPAND
 --------------------------------------------------
 local function tweenMenu(collapse)
 	isCollapsed = collapse
 	collapseBtn.Text = collapse and "+" or "–"
 
-	local info = TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+	local info = TweenInfo.new(
+		0.35,
+		Enum.EasingStyle.Quart,
+		Enum.EasingDirection.Out
+	)
+
 	TweenService:Create(main, info, {
 		Size = collapse and collapsedSize or expandedSize
 	}):Play()
@@ -186,11 +211,9 @@ collapseBtn.MouseButton1Click:Connect(function()
 	tweenMenu(not isCollapsed)
 end)
 
-local function getScale(distance)
-	return math.clamp(1 / (distance / 35), 0.6, 1.6)
-end
-
--- ESP GUI
+--------------------------------------------------
+-- ESP
+--------------------------------------------------
 local function createESP(player)
 	if espGuis[player] then return end
 	if teammateCheck and player.Team == LocalPlayer.Team then return end
@@ -198,16 +221,18 @@ local function createESP(player)
 	local char = player.Character
 	if not char then return end
 
-	local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+	local root = char:FindFirstChild("HumanoidRootPart")
+		or char:FindFirstChild("Torso")
+
 	if not root then return end
 
 	local bb = Instance.new("BillboardGui")
 	bb.Name = "SimpleESP"
 	bb.Adornee = root
 	bb.AlwaysOnTop = true
-	bb.StudsOffset = Vector3.new(0, 3, 0)
-	bb.Size = UDim2.fromOffset(80, 40)
-	bb.Parent = LocalPlayer:WaitForChild("PlayerGui")
+	bb.StudsOffset = Vector3.new(0,3,0)
+	bb.Size = UDim2.fromOffset(80,40)
+	bb.Parent = LocalPlayer.PlayerGui
 
 	local text = Instance.new("TextLabel")
 	text.Size = UDim2.fromScale(1,1)
@@ -218,7 +243,6 @@ local function createESP(player)
 	text.Font = Enum.Font.GothamBold
 	text.TextSize = 14
 	text.TextWrapped = true
-	text.TextYAlignment = Enum.TextYAlignment.Center
 	text.Parent = bb
 
 	espGuis[player] = {
@@ -235,24 +259,22 @@ local function removeESP(player)
 end
 
 RunService.RenderStepped:Connect(function()
-	for plr, data in pairs(espGuis) do
+	for plr,data in pairs(espGuis) do
 		local char = plr.Character
 		if not char then
-			-- character chưa replicate → CHỜ
 			continue
 		end
 
 		local hum = char:FindFirstChildOfClass("Humanoid")
-		local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+		local root = char:FindFirstChild("HumanoidRootPart")
+			or char:FindFirstChild("Torso")
 
 		if hum and hum.Health <= 0 then
-			-- chết thật → remove
 			removeESP(plr)
 			continue
 		end
 
 		if not root then
-			-- root chưa load → CHỜ
 			continue
 		end
 
@@ -265,26 +287,27 @@ RunService.RenderStepped:Connect(function()
 		data.gui.Size = UDim2.fromOffset(80 * scale, 40 * scale)
 		data.label.TextSize = 14 * scale
 	end
+
+	if fakeCursorGui.Enabled then
+		local pos = UserInputService:GetMouseLocation()
+		fakeCursor.Position = UDim2.fromOffset(pos.X, pos.Y)
+	end
 end)
 
 local function hookPlayer(player)
-	-- nếu ESP đang bật và character đã tồn tại
 	if espEnabled and player.Character then
 		createESP(player)
 	end
 
-	player.CharacterAdded:Connect(function(char)
+	player.CharacterAdded:Connect(function()
 		if not espEnabled then return end
 
-		local hum = char:WaitForChild("Humanoid", 5)
-		local root = char:WaitForChild("HumanoidRootPart", 5)
-		if hum and root then
-			removeESP(player)
-			createESP(player)
-		end
+		task.wait(1)
+
+		removeESP(player)
+		createESP(player)
 	end)
 end
-
 
 for _,plr in ipairs(Players:GetPlayers()) do
 	if plr ~= LocalPlayer then
@@ -297,6 +320,7 @@ Players.PlayerAdded:Connect(function(plr)
 		hookPlayer(plr)
 	end
 end)
+
 Players.PlayerRemoving:Connect(removeESP)
 
 local function refreshESP()
@@ -311,30 +335,24 @@ local function refreshESP()
 	end
 end
 
--- FIX LOCALPLAYER RESPAWN (BẮT BUỘC)
-LocalPlayer.CharacterAdded:Connect(function(char)
-	char:WaitForChild("HumanoidRootPart", 5)
-	task.wait(0.2)
-
-	if espEnabled then
-		refreshESP()
-	end
-end)
-
 --------------------------------------------------
--- AIM LOGIC
+-- AIM
 --------------------------------------------------
 local function getClosestHead()
-	local closest, dist = nil, math.huge
+	local closest = nil
+	local dist = math.huge
+
 	for _,plr in ipairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer and plr.Character and
-			(not teammateCheck or plr.Team ~= LocalPlayer.Team) then
+		if plr ~= LocalPlayer
+			and plr.Character
+			and (not teammateCheck or plr.Team ~= LocalPlayer.Team) then
 
 			local hum = plr.Character:FindFirstChildOfClass("Humanoid")
 			local head = plr.Character:FindFirstChild("Head")
 
 			if hum and hum.Health > 0 and head then
 				local d = (head.Position - Camera.CFrame.Position).Magnitude
+
 				if d < dist then
 					dist = d
 					closest = head
@@ -342,16 +360,35 @@ local function getClosestHead()
 			end
 		end
 	end
+
 	return closest
+end
+
+local function hasLineOfSight(targetPart)
+	local origin = Camera.CFrame.Position
+	local direction = targetPart.Position - origin
+
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Blacklist
+	params.FilterDescendantsInstances = {
+		LocalPlayer.Character,
+		targetPart.Parent
+	}
+
+	local result = workspace:Raycast(origin, direction, params)
+
+	return result == nil
 end
 
 local function updateMouseState()
 	if mouseUnlockedByCtrl then
 		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 		UserInputService.MouseIconEnabled = true
+
 	elseif aiming then
 		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 		UserInputService.MouseIconEnabled = false
+
 	else
 		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 		UserInputService.MouseIconEnabled = true
@@ -362,10 +399,39 @@ local function startAim()
 	if aimConnection then return end
 
 	aimConnection = RunService.RenderStepped:Connect(function()
-		if mouseUnlockedByCtrl then return end
+
+		if mouseUnlockedByCtrl then
+			return
+		end
+
 		local head = getClosestHead()
+
 		if head then
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
+			Camera.CFrame = CFrame.new(
+				Camera.CFrame.Position,
+				head.Position
+			)
+
+			if autoShoot
+				and not shootDebounce
+				and hasLineOfSight(head) then
+
+				local char = LocalPlayer.Character
+
+				if char then
+					local tool = char:FindFirstChildOfClass("Tool")
+
+					if tool then
+						shootDebounce = true
+
+						tool:Activate()
+
+						task.delay(0.08,function()
+							shootDebounce = false
+						end)
+					end
+				end
+			end
 		end
 	end)
 
@@ -377,6 +443,7 @@ local function stopAim()
 		aimConnection:Disconnect()
 		aimConnection = nil
 	end
+
 	updateMouseState()
 end
 
@@ -396,15 +463,35 @@ local function updateAimUI()
 end
 
 local function updateTeamUI()
-	teamBtn.Text = teammateCheck and "TEAMMATE CHECK : ON" or "TEAMMATE CHECK : OFF"
-	teamBtn.BackgroundColor3 = teammateCheck and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
+	teamBtn.Text = teammateCheck
+		and "TEAMMATE CHECK : ON"
+		or "TEAMMATE CHECK : OFF"
+
+	teamBtn.BackgroundColor3 = teammateCheck
+		and Color3.fromRGB(60,200,60)
+		or Color3.fromRGB(200,50,50)
+
 	refreshESP()
 end
 
 local function updateESPUI()
 	espBtn.Text = espEnabled and "ESP : ON" or "ESP : OFF"
-	espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(60,200,60) or Color3.fromRGB(200,50,50)
+
+	espBtn.BackgroundColor3 = espEnabled
+		and Color3.fromRGB(60,200,60)
+		or Color3.fromRGB(200,50,50)
+
 	refreshESP()
+end
+
+local function updateShootUI()
+	shootBtn.Text = autoShoot
+		and "AUTO SHOOT : ON"
+		or "AUTO SHOOT : OFF"
+
+	shootBtn.BackgroundColor3 = autoShoot
+		and Color3.fromRGB(60,200,60)
+		or Color3.fromRGB(200,50,50)
 end
 
 --------------------------------------------------
@@ -425,7 +512,12 @@ espBtn.MouseButton1Click:Connect(function()
 	updateESPUI()
 end)
 
-UserInputService.InputBegan:Connect(function(input, gp)
+shootBtn.MouseButton1Click:Connect(function()
+	autoShoot = not autoShoot
+	updateShootUI()
+end)
+
+UserInputService.InputBegan:Connect(function(input,gp)
 	if gp then return end
 
 	if input.KeyCode == Enum.KeyCode.B then
@@ -433,7 +525,9 @@ UserInputService.InputBegan:Connect(function(input, gp)
 		updateAimUI()
 	end
 
-	if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
+	if input.KeyCode == Enum.KeyCode.LeftControl
+		or input.KeyCode == Enum.KeyCode.RightControl then
+
 		mouseUnlockedByCtrl = true
 
 		ctrlModalBtn.Visible = true
@@ -445,7 +539,10 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-	if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
+
+	if input.KeyCode == Enum.KeyCode.LeftControl
+		or input.KeyCode == Enum.KeyCode.RightControl then
+
 		mouseUnlockedByCtrl = false
 
 		ctrlModalBtn.Visible = false
@@ -455,11 +552,18 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
-Players.PlayerRemoving:Connect(removeESP)
-
 --------------------------------------------------
 -- INIT
 --------------------------------------------------
 updateAimUI()
 updateTeamUI()
 updateESPUI()
+updateShootUI()
+
+LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(1)
+
+	if espEnabled then
+		refreshESP()
+	end
+end)
