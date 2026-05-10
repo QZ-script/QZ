@@ -464,7 +464,7 @@ local function startAim()
 					0
 				)
 
-				task.delay(0.06,function()
+				task.delay(0.2,function()
 					clickDebounce = false
 				end)
 			end
