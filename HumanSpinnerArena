@@ -7,8 +7,8 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 -- SETTINGS
 local farming = false
-local farmDelay = 8
-local MIN_DELAY = 5
+local farmDelay = 9
+local MIN_DELAY = 9
 local MAX_DELAY = 20
 
 ---------------------------------------------------------
