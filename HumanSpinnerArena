@@ -7,6 +7,8 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 -- SETTINGS
 local farming = false
+local farmThreadRunning = false
+
 local farmDelay = 9
 local MIN_DELAY = 1
 local MAX_DELAY = 30
@@ -142,11 +144,13 @@ local function updateDrag(input)
 end
 
 mainFrame.InputBegan:Connect(function(input)
+
 	if sliderDragging then
 		return
 	end
 
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+
 		dragging = true
 		dragStart = input.Position
 		startPos = mainFrame.Position
@@ -160,6 +164,7 @@ mainFrame.InputBegan:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
+
 	if dragging
 		and not sliderDragging
 		and input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -169,8 +174,10 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 UserInputService.InputEnded:Connect(function(input)
+
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = false
+		sliderDragging = false
 	end
 end)
 
@@ -179,6 +186,7 @@ end)
 ---------------------------------------------------------
 
 local function updateSlider(inputX)
+
 	local sliderX = sliderBg.AbsolutePosition.X
 	local sliderWidth = sliderBg.AbsoluteSize.X
 
@@ -191,10 +199,12 @@ local function updateSlider(inputX)
 	value = math.round(value)
 
 	farmDelay = value
+
 	speedLabel.Text = "Farm Speed: "..farmDelay.."s"
 end
 
 sliderKnob.InputBegan:Connect(function(input)
+
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		sliderDragging = true
 		dragging = false
@@ -202,22 +212,21 @@ sliderKnob.InputBegan:Connect(function(input)
 end)
 
 sliderBg.InputBegan:Connect(function(input)
+
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = false
 		sliderDragging = true
+
 		updateSlider(input.Position.X)
 	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if sliderDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		updateSlider(input.Position.X)
-	end
-end)
 
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		sliderDragging = false
+	if sliderDragging
+		and input.UserInputType == Enum.UserInputType.MouseMovement then
+
+		updateSlider(input.Position.X)
 	end
 end)
 
@@ -226,43 +235,76 @@ end)
 ---------------------------------------------------------
 
 local function getWinPad()
+
 	local lobby = workspace:FindFirstChild("Lobby")
-	if not lobby then return nil end
+	if not lobby then
+		return nil
+	end
 
 	local hardObby = lobby:FindFirstChild("HardObby")
-	if not hardObby then return nil end
+	if not hardObby then
+		return nil
+	end
 
 	return hardObby:FindFirstChild("WinPad")
 end
 
 local function teleportToWinPad()
+
 	local character = player.Character
-	if not character then return end
+	if not character then
+		return
+	end
 
 	local root = character:FindFirstChild("HumanoidRootPart")
-	if not root then return end
+	if not root then
+		return
+	end
 
 	local winPad = getWinPad()
-	if not winPad then return end
+	if not winPad then
+		return
+	end
 
 	root.CFrame = winPad.CFrame + Vector3.new(0,12,0)
 end
 
+---------------------------------------------------------
+-- BUTTON LOGIC
+---------------------------------------------------------
+
 farmBtn.MouseButton1Click:Connect(function()
+
 	farming = not farming
 
 	if farming then
+
 		farmBtn.Text = "Stop Farm"
 		farmBtn.TextColor3 = Color3.fromRGB(255,100,100)
 
+		-- prevent stacked loops
+		if farmThreadRunning then
+			return
+		end
+
+		farmThreadRunning = true
+
 		task.spawn(function()
+
 			while farming do
+
 				teleportToWinPad()
+
 				task.wait(farmDelay)
 			end
+
+			farmThreadRunning = false
 		end)
+
 	else
+
 		farmBtn.Text = "Start Farm"
 		farmBtn.TextColor3 = Color3.fromRGB(0,255,255)
+
 	end
 end)
