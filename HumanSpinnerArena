@@ -1,17 +1,13 @@
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
----------------------------------------------------------
 -- SETTINGS
----------------------------------------------------------
-
 local farming = false
-local hybridFarming = false
-
-local farmDelay = 10
+local farmDelay = 9
 local MIN_DELAY = 9
 local MAX_DELAY = 20
 
@@ -26,7 +22,7 @@ screenGui.Parent = playerGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainPanel"
-mainFrame.Size = UDim2.new(0, 260, 0, 235)
+mainFrame.Size = UDim2.new(0, 260, 0, 180)
 mainFrame.Position = UDim2.new(0, 350, 0, 250)
 mainFrame.BackgroundColor3 = Color3.fromRGB(15,15,15)
 mainFrame.BorderSizePixel = 0
@@ -52,16 +48,13 @@ title.Font = Enum.Font.FredokaOne
 title.TextSize = 22
 title.Parent = mainFrame
 
----------------------------------------------------------
--- START FARM BUTTON
----------------------------------------------------------
-
+-- START BUTTON
 local farmBtn = Instance.new("TextButton")
 farmBtn.Size = UDim2.new(0,220,0,40)
 farmBtn.Position = UDim2.new(0,20,0,50)
 farmBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
 farmBtn.BorderSizePixel = 0
-farmBtn.Text = "Auto Farm"
+farmBtn.Text = "Start Farm"
 farmBtn.TextColor3 = Color3.fromRGB(0,255,255)
 farmBtn.Font = Enum.Font.GothamBold
 farmBtn.TextSize = 18
@@ -71,32 +64,10 @@ local farmCorner = Instance.new("UICorner")
 farmCorner.CornerRadius = UDim.new(0,6)
 farmCorner.Parent = farmBtn
 
----------------------------------------------------------
--- HYBRID FARM BUTTON
----------------------------------------------------------
-
-local hybridBtn = Instance.new("TextButton")
-hybridBtn.Size = UDim2.new(0,220,0,40)
-hybridBtn.Position = UDim2.new(0,20,0,100)
-hybridBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-hybridBtn.BorderSizePixel = 0
-hybridBtn.Text = "[Prefer] Hybrid Farm"
-hybridBtn.TextColor3 = Color3.fromRGB(0,255,255)
-hybridBtn.Font = Enum.Font.GothamBold
-hybridBtn.TextSize = 18
-hybridBtn.Parent = mainFrame
-
-local hybridCorner = Instance.new("UICorner")
-hybridCorner.CornerRadius = UDim.new(0,6)
-hybridCorner.Parent = hybridBtn
-
----------------------------------------------------------
 -- SPEED LABEL
----------------------------------------------------------
-
 local speedLabel = Instance.new("TextLabel")
 speedLabel.Size = UDim2.new(0,220,0,25)
-speedLabel.Position = UDim2.new(0,20,0,160)
+speedLabel.Position = UDim2.new(0,20,0,105)
 speedLabel.BackgroundTransparency = 1
 speedLabel.Text = "Farm Speed: "..farmDelay.."s"
 speedLabel.TextColor3 = Color3.fromRGB(255,255,255)
@@ -105,13 +76,10 @@ speedLabel.TextSize = 16
 speedLabel.TextXAlignment = Enum.TextXAlignment.Left
 speedLabel.Parent = mainFrame
 
----------------------------------------------------------
 -- SLIDER BACKGROUND
----------------------------------------------------------
-
 local sliderBg = Instance.new("Frame")
 sliderBg.Size = UDim2.new(0,220,0,8)
-sliderBg.Position = UDim2.new(0,20,0,195)
+sliderBg.Position = UDim2.new(0,20,0,140)
 sliderBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
 sliderBg.BorderSizePixel = 0
 sliderBg.Parent = mainFrame
@@ -120,10 +88,7 @@ local sliderBgCorner = Instance.new("UICorner")
 sliderBgCorner.CornerRadius = UDim.new(1,0)
 sliderBgCorner.Parent = sliderBg
 
----------------------------------------------------------
 -- SLIDER FILL
----------------------------------------------------------
-
 local sliderFill = Instance.new("Frame")
 sliderFill.Size = UDim2.new((farmDelay - MIN_DELAY)/(MAX_DELAY - MIN_DELAY),0,1,0)
 sliderFill.BackgroundColor3 = Color3.fromRGB(0,255,255)
@@ -134,10 +99,7 @@ local sliderFillCorner = Instance.new("UICorner")
 sliderFillCorner.CornerRadius = UDim.new(1,0)
 sliderFillCorner.Parent = sliderFill
 
----------------------------------------------------------
 -- SLIDER KNOB
----------------------------------------------------------
-
 local sliderKnob = Instance.new("Frame")
 sliderKnob.Size = UDim2.new(0,16,0,16)
 sliderKnob.AnchorPoint = Vector2.new(0.5,0.5)
@@ -209,7 +171,6 @@ end)
 UserInputService.InputEnded:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = false
-		sliderDragging = false
 	end
 end)
 
@@ -217,29 +178,7 @@ end)
 -- SLIDER LOGIC
 ---------------------------------------------------------
 
-local sliderEnabled = true
-
-local function setSliderEnabled(state)
-	sliderEnabled = state
-
-	if state then
-		sliderBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
-		sliderFill.BackgroundColor3 = Color3.fromRGB(0,255,255)
-		sliderKnob.BackgroundColor3 = Color3.fromRGB(255,255,255)
-		speedLabel.TextColor3 = Color3.fromRGB(255,255,255)
-	else
-		sliderBg.BackgroundColor3 = Color3.fromRGB(70,70,70)
-		sliderFill.BackgroundColor3 = Color3.fromRGB(120,120,120)
-		sliderKnob.BackgroundColor3 = Color3.fromRGB(160,160,160)
-		speedLabel.TextColor3 = Color3.fromRGB(150,150,150)
-	end
-end
-
 local function updateSlider(inputX)
-	if not sliderEnabled then
-		return
-	end
-
 	local sliderX = sliderBg.AbsolutePosition.X
 	local sliderWidth = sliderBg.AbsoluteSize.X
 
@@ -256,8 +195,6 @@ local function updateSlider(inputX)
 end
 
 sliderKnob.InputBegan:Connect(function(input)
-	if not sliderEnabled then return end
-
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		sliderDragging = true
 		dragging = false
@@ -265,8 +202,6 @@ sliderKnob.InputBegan:Connect(function(input)
 end)
 
 sliderBg.InputBegan:Connect(function(input)
-	if not sliderEnabled then return end
-
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = false
 		sliderDragging = true
@@ -280,111 +215,54 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		sliderDragging = false
+	end
+end)
+
 ---------------------------------------------------------
--- TELEPORT FUNCTIONS
+-- FARM LOGIC
 ---------------------------------------------------------
 
-local function getWinPad(obbyName)
+local function getWinPad()
 	local lobby = workspace:FindFirstChild("Lobby")
 	if not lobby then return nil end
 
-	local obby = lobby:FindFirstChild(obbyName)
-	if not obby then return nil end
+	local hardObby = lobby:FindFirstChild("HardObby")
+	if not hardObby then return nil end
 
-	return obby:FindFirstChild("WinPad")
+	return hardObby:FindFirstChild("WinPad")
 end
 
-local function teleportTo(obbyName)
+local function teleportToWinPad()
 	local character = player.Character
 	if not character then return end
 
 	local root = character:FindFirstChild("HumanoidRootPart")
 	if not root then return end
 
-	local winPad = getWinPad(obbyName)
+	local winPad = getWinPad()
 	if not winPad then return end
 
 	root.CFrame = winPad.CFrame + Vector3.new(0,12,0)
 end
 
----------------------------------------------------------
--- NORMAL FARM
----------------------------------------------------------
-
 farmBtn.MouseButton1Click:Connect(function()
-
 	farming = not farming
 
 	if farming then
-
-		-- TURN OFF HYBRID
-		hybridFarming = false
-		hybridBtn.Text = "[Prefer] Hybrid Farm"
-		hybridBtn.TextColor3 = Color3.fromRGB(0,255,255)
-
-		setSliderEnabled(true)
-
 		farmBtn.Text = "Stop Farm"
 		farmBtn.TextColor3 = Color3.fromRGB(255,100,100)
 
 		task.spawn(function()
 			while farming do
-				teleportTo("HardObby")
+				teleportToWinPad()
 				task.wait(farmDelay)
 			end
 		end)
-
 	else
-		farmBtn.Text = "Auto Farm"
+		farmBtn.Text = "Start Farm"
 		farmBtn.TextColor3 = Color3.fromRGB(0,255,255)
-	end
-end)
-
----------------------------------------------------------
--- HYBRID FARM
----------------------------------------------------------
-
-hybridBtn.MouseButton1Click:Connect(function()
-
-	hybridFarming = not hybridFarming
-
-	if hybridFarming then
-
-		-- TURN OFF NORMAL FARM
-		farming = false
-		farmBtn.Text = "Auto Farm"
-		farmBtn.TextColor3 = Color3.fromRGB(0,255,255)
-
-		-- DISABLE SLIDER
-		setSliderEnabled(false)
-
-		hybridBtn.Text = "Stop Hybrid"
-		hybridBtn.TextColor3 = Color3.fromRGB(255,100,100)
-
-		task.spawn(function()
-
-			local current = 1
-			local cycle = {"HardObby", "EasyObby"}
-
-			while hybridFarming do
-
-				teleportTo(cycle[current])
-
-				current += 1
-
-				if current > #cycle then
-					current = 1
-				end
-
-				task.wait(4.5)
-			end
-		end)
-
-	else
-
-		setSliderEnabled(true)
-
-		hybridBtn.Text = "[Prefer] Hybrid Farm"
-		hybridBtn.TextColor3 = Color3.fromRGB(0,255,255)
 	end
 end)
