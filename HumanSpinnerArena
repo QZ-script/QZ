@@ -61,7 +61,7 @@ farmBtn.Size = UDim2.new(0,220,0,40)
 farmBtn.Position = UDim2.new(0,20,0,50)
 farmBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
 farmBtn.BorderSizePixel = 0
-farmBtn.Text = "Start Farm"
+farmBtn.Text = "Auto Farm"
 farmBtn.TextColor3 = Color3.fromRGB(0,255,255)
 farmBtn.Font = Enum.Font.GothamBold
 farmBtn.TextSize = 18
@@ -335,7 +335,7 @@ farmBtn.MouseButton1Click:Connect(function()
 		end)
 
 	else
-		farmBtn.Text = "Start Farm"
+		farmBtn.Text = "Auto Farm"
 		farmBtn.TextColor3 = Color3.fromRGB(0,255,255)
 	end
 end)
@@ -352,7 +352,7 @@ hybridBtn.MouseButton1Click:Connect(function()
 
 		-- TURN OFF NORMAL FARM
 		farming = false
-		farmBtn.Text = "Start Farm"
+		farmBtn.Text = "Auto Farm"
 		farmBtn.TextColor3 = Color3.fromRGB(0,255,255)
 
 		-- DISABLE SLIDER
@@ -384,7 +384,7 @@ hybridBtn.MouseButton1Click:Connect(function()
 
 		setSliderEnabled(true)
 
-		hybridBtn.Text = "Hybrid Farm"
+		hybridBtn.Text = "[Prefer] Hybrid Farm"
 		hybridBtn.TextColor3 = Color3.fromRGB(0,255,255)
 	end
 end)
