@@ -7,8 +7,8 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 -- SETTINGS
 local farming = false
-local farmDelay = 10 -- default seconds
-local MIN_DELAY = 9
+local farmDelay = 8
+local MIN_DELAY = 5
 local MAX_DELAY = 20
 
 ---------------------------------------------------------
@@ -118,12 +118,17 @@ knobCorner.CornerRadius = UDim.new(1,0)
 knobCorner.Parent = sliderKnob
 
 ---------------------------------------------------------
--- DRAGGING
+-- VARIABLES
 ---------------------------------------------------------
 
 local dragging = false
+local sliderDragging = false
 local dragStart
 local startPos
+
+---------------------------------------------------------
+-- PANEL DRAGGING
+---------------------------------------------------------
 
 local function updateDrag(input)
 	local delta = input.Position - dragStart
@@ -137,6 +142,10 @@ local function updateDrag(input)
 end
 
 mainFrame.InputBegan:Connect(function(input)
+	if sliderDragging then
+		return
+	end
+
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
 		dragStart = input.Position
@@ -151,16 +160,23 @@ mainFrame.InputBegan:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+	if dragging
+		and not sliderDragging
+		and input.UserInputType == Enum.UserInputType.MouseMovement then
+
 		updateDrag(input)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
 	end
 end)
 
 ---------------------------------------------------------
 -- SLIDER LOGIC
 ---------------------------------------------------------
-
-local sliderDragging = false
 
 local function updateSlider(inputX)
 	local sliderX = sliderBg.AbsolutePosition.X
@@ -181,13 +197,15 @@ end
 sliderKnob.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		sliderDragging = true
+		dragging = false
 	end
 end)
 
 sliderBg.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		updateSlider(input.Position.X)
+		dragging = false
 		sliderDragging = true
+		updateSlider(input.Position.X)
 	end
 end)
 
