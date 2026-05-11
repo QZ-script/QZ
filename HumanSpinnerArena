@@ -227,7 +227,7 @@ local function teleportToWinPad()
 	local winPad = getWinPad()
 	if not winPad then return end
 
-	root.CFrame = winPad.CFrame + Vector3.new(0,3,0)
+	root.CFrame = winPad.CFrame + Vector3.new(0,12,0)
 end
 
 farmBtn.MouseButton1Click:Connect(function()
