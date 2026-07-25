@@ -19,6 +19,10 @@ gui.DisplayOrder = 999999
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
+
+local aimMode = "DISTANCE" -- DISTANCE hoặc FOV
+local fovRadius = 120
+
 --------------------------------------------------
 -- CTRL MODAL IMAGEBUTTON
 --------------------------------------------------
@@ -60,11 +64,26 @@ stroke.Thickness = 1
 stroke.Color = Color3.fromRGB(0,0,0)
 stroke.Parent = fakeCursor
 
+local fovCircle = Instance.new("ImageLabel")
+fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+fovCircle.BackgroundTransparency = 1
+fovCircle.Image = "rbxassetid://12201347394" -- vòng tròn
+fovCircle.ImageColor3 = Color3.fromRGB(80,200,255)
+fovCircle.ScaleType = Enum.ScaleType.Fit
+fovCircle.Parent = gui
+
+local circleStroke = Instance.new("UIStroke")
+circleStroke.Thickness = 2
+circleStroke.Color = Color3.fromRGB(80,200,255)
+circleStroke.Parent = fovCircle
+
+Instance.new("UICorner", fovCircle).CornerRadius = UDim.new(1,0)
+
 --------------------------------------------------
 -- MAIN FRAME
 --------------------------------------------------
 local main = Instance.new("Frame")
-main.Size = UDim2.fromOffset(190,250)
+main.Size = UDim2.fromOffset(190,300)
 main.Position = UDim2.fromScale(0.05,0.4)
 main.BackgroundColor3 = Color3.fromRGB(25,25,25)
 main.BorderSizePixel = 0
@@ -150,6 +169,39 @@ shootBtn.Text = "AUTO SHOOT : OFF"
 shootBtn.Parent = main
 styleButton(shootBtn)
 
+local modeBtn = Instance.new("TextButton")
+modeBtn.Size = UDim2.new(1,-20,0,35)
+modeBtn.Position = UDim2.fromOffset(10,230)
+modeBtn.BackgroundColor3 = Color3.fromRGB(70,70,200)
+modeBtn.Text = "MODE : DISTANCE"
+modeBtn.Parent = main
+styleButton(modeBtn)
+
+local sliderFrame = Instance.new("Frame")
+sliderFrame.Size = UDim2.new(1,-20,0,20)
+sliderFrame.Position = UDim2.fromOffset(10,270)
+sliderFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+sliderFrame.BorderSizePixel = 0
+sliderFrame.Parent = main
+Instance.new("UICorner", sliderFrame).CornerRadius = UDim.new(1,0)
+
+local sliderFill = Instance.new("Frame")
+sliderFill.Size = UDim2.new(fovRadius/300,0,1,0)
+sliderFill.BackgroundColor3 = Color3.fromRGB(80,200,255)
+sliderFill.BorderSizePixel = 0
+sliderFill.Parent = sliderFrame
+Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(1,0)
+
+local sliderLabel = Instance.new("TextLabel")
+sliderLabel.Size = UDim2.new(1,0,0,16)
+sliderLabel.Position = UDim2.fromOffset(0,-18)
+sliderLabel.BackgroundTransparency = 1
+sliderLabel.Text = "FOV : "..fovRadius
+sliderLabel.TextColor3 = Color3.new(1,1,1)
+sliderLabel.Font = Enum.Font.GothamBold
+sliderLabel.TextSize = 14
+sliderLabel.Parent = sliderFrame
+
 --------------------------------------------------
 -- COLLAPSE BUTTON
 --------------------------------------------------
@@ -180,7 +232,7 @@ local espGuis = {}
 
 local clickDebounce = false
 
-local expandedSize = main.Size
+local expandedSize = UDim2.fromOffset(190,300)
 local collapsedSize = UDim2.fromOffset(190,45)
 
 --------------------------------------------------
@@ -306,6 +358,11 @@ RunService.RenderStepped:Connect(function()
 		local pos = UserInputService:GetMouseLocation()
 		fakeCursor.Position = UDim2.fromOffset(pos.X,pos.Y)
 	end
+
+	local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+	fovCircle.Position = UDim2.fromOffset(center.X, center.Y)
+	fovCircle.Size = UDim2.fromOffset(fovRadius*2, fovRadius*2)
+	fovCircle.Visible = aiming and aimMode == "FOV"
 end)
 
 --------------------------------------------------
@@ -345,12 +402,11 @@ Players.PlayerRemoving:Connect(removeESP)
 -- AIM
 --------------------------------------------------
 local function getClosestHead()
-
 	local closest = nil
-	local dist = math.huge
+	local bestMetric = math.huge
+	local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
 
 	for _,plr in ipairs(Players:GetPlayers()) do
-
 		if plr ~= LocalPlayer
 			and plr.Character
 			and (not teammateCheck or plr.Team ~= LocalPlayer.Team) then
@@ -359,14 +415,24 @@ local function getClosestHead()
 			local head = plr.Character:FindFirstChild("Head")
 
 			if hum and hum.Health > 0 and head then
+				local screenPos, visible = Camera:WorldToViewportPoint(head.Position)
 
-				local d = (
-					head.Position - Camera.CFrame.Position
-				).Magnitude
+				if visible then
+					local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
 
-				if d < dist then
-					dist = d
-					closest = head
+					if aimMode == "FOV" then
+						if mouseDist <= fovRadius and mouseDist < bestMetric then
+							bestMetric = mouseDist
+							closest = head
+						end
+					else
+						local worldDist = (head.Position - Camera.CFrame.Position).Magnitude
+
+						if worldDist < bestMetric then
+							bestMetric = worldDist
+							closest = head
+						end
+					end
 				end
 			end
 		end
@@ -560,6 +626,16 @@ shootBtn.MouseButton1Click:Connect(function()
 	updateShootUI()
 end)
 
+modeBtn.MouseButton1Click:Connect(function()
+	if aimMode == "DISTANCE" then
+		aimMode = "FOV"
+	else
+		aimMode = "DISTANCE"
+	end
+
+	modeBtn.Text = "MODE : "..aimMode
+end)
+
 --------------------------------------------------
 -- KEYBOARD INPUTS
 --------------------------------------------------
@@ -597,6 +673,31 @@ UserInputService.InputEnded:Connect(function(input)
 		fakeCursorGui.Enabled = false
 
 		updateMouseState()
+	end
+end)
+
+local dragging = false
+
+sliderFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+	end
+end)
+
+sliderFrame.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local mouseX = UserInputService:GetMouseLocation().X
+		local rel = math.clamp((mouseX - sliderFrame.AbsolutePosition.X) / sliderFrame.AbsoluteSize.X, 0, 1)
+
+		fovRadius = math.floor(30 + rel * 270) -- 30 → 300
+		sliderFill.Size = UDim2.new(rel,0,1,0)
+		sliderLabel.Text = "FOV : "..fovRadius
 	end
 end)
 
