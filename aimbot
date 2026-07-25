@@ -88,7 +88,7 @@ main.Position = UDim2.fromScale(0.05,0.4)
 main.BackgroundColor3 = Color3.fromRGB(25,25,25)
 main.BorderSizePixel = 0
 main.Active = true
-main.Draggable = true
+main.Draggable = 
 main.Parent = gui
 
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
@@ -106,6 +106,7 @@ title.TextStrokeColor3 = Color3.new(1,1,1)
 title.Font = Enum.Font.LuckiestGuy
 title.TextSize = 16
 title.Parent = main
+title.Active = true
 
 --------------------------------------------------
 -- CTRL HINT
@@ -225,6 +226,9 @@ local espEnabled = false
 local autoShoot = false
 local aimHeld = false
 local dragging = false
+local draggingMenu = false
+local dragStart
+local startPos
 
 
 local mouseUnlockedByCtrl = false
@@ -267,6 +271,46 @@ end
 
 collapseBtn.MouseButton1Click:Connect(function()
 	tweenMenu(not isCollapsed)
+end)
+
+--------------------------------------------------
+-- DRAG MENU
+--------------------------------------------------
+
+title.InputBegan:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		draggingMenu = true
+		dragStart = input.Position
+		startPos = main.Position
+	end
+
+end)
+
+title.InputEnded:Connect(function(input)
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		draggingMenu = false
+	end
+
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+	if draggingMenu
+		and input.UserInputType == Enum.UserInputType.MouseMovement then
+
+		local delta = input.Position - dragStart
+
+		main.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+
+	end
+
 end)
 
 --------------------------------------------------
