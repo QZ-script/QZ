@@ -501,15 +501,16 @@ local function startAim()
 		end
 
 		local head = getClosestHead()
-
-		if head and (aimMode == "DISTANCE" or aimHeld) then
-			local target = CFrame.new(Camera.CFrame.Position, head.Position)
-			Camera.CFrame = Camera.CFrame:Lerp(target, 0.18)
-
-			if autoShoot
-    			and (aimMode == "DISTANCE" or aimHeld)
-    			and not clickDebounce
-   				and hasLineOfSight(head) then
+		local holdingMouse = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+		
+		if head and (aimMode == "DISTANCE" or holdingMouse) then
+		    local target = CFrame.new(Camera.CFrame.Position, head.Position)
+		    Camera.CFrame = Camera.CFrame:Lerp(target, 0.5)
+		
+		    if autoShoot
+		        and (aimMode == "DISTANCE" or holdingMouse)
+		        and not clickDebounce
+		        and hasLineOfSight(head) then
 
 				clickDebounce = true
 
