@@ -223,6 +223,9 @@ local aiming = false
 local teammateCheck = false
 local espEnabled = false
 local autoShoot = false
+local aimHeld = false
+local dragging = false
+
 
 local mouseUnlockedByCtrl = false
 local isCollapsed = false
@@ -499,16 +502,14 @@ local function startAim()
 
 		local head = getClosestHead()
 
-		if head then
-
-			Camera.CFrame = CFrame.new(
-				Camera.CFrame.Position,
-				head.Position
-			)
+		if head and (aimMode == "DISTANCE" or aimHeld) then
+			local target = CFrame.new(Camera.CFrame.Position, head.Position)
+			Camera.CFrame = Camera.CFrame:Lerp(target, 0.18)
 
 			if autoShoot
-				and not clickDebounce
-				and hasLineOfSight(head) then
+    			and (aimMode == "DISTANCE" or aimHeld)
+    			and not clickDebounce
+   				and hasLineOfSight(head) then
 
 				clickDebounce = true
 
@@ -639,15 +640,17 @@ end)
 --------------------------------------------------
 -- KEYBOARD INPUTS
 --------------------------------------------------
-UserInputService.InputBegan:Connect(function(input,gp)
+UserInputService.InputBegan:Connect(function(input, gp)
 
 	if gp then return end
 
+	-- Toggle Aim
 	if input.KeyCode == Enum.KeyCode.B then
 		aiming = not aiming
 		updateAimUI()
 	end
 
+	-- Giữ CTRL để mở khóa chuột
 	if input.KeyCode == Enum.KeyCode.LeftControl
 		or input.KeyCode == Enum.KeyCode.RightControl then
 
@@ -657,13 +660,19 @@ UserInputService.InputBegan:Connect(function(input,gp)
 		fakeCursorGui.Enabled = true
 
 		updateMouseState()
-
 		UserInputService.MouseIconEnabled = true
 	end
+
+	-- Giữ chuột trái để Aim (chế độ FOV)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 and not dragging then
+	    aimHeld = true
+	end
+
 end)
 
 UserInputService.InputEnded:Connect(function(input)
 
+	-- Thả CTRL
 	if input.KeyCode == Enum.KeyCode.LeftControl
 		or input.KeyCode == Enum.KeyCode.RightControl then
 
@@ -674,9 +683,13 @@ UserInputService.InputEnded:Connect(function(input)
 
 		updateMouseState()
 	end
-end)
 
-local dragging = false
+	-- Thả chuột trái
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		aimHeld = false
+	end
+
+end)
 
 sliderFrame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
