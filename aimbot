@@ -551,7 +551,7 @@ local function startAim()
 		
 		if head and (aimMode == "DISTANCE" or holdingMouse) then
 		    local target = CFrame.new(Camera.CFrame.Position, head.Position)
-		    Camera.CFrame = Camera.CFrame:Lerp(target, 0.5)
+		    Camera.CFrame = Camera.CFrame:Lerp(target, 1)
 		
 		    if autoShoot
 		        and (aimMode == "DISTANCE" or holdingMouse)
