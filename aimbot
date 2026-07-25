@@ -88,7 +88,7 @@ main.Position = UDim2.fromScale(0.05,0.4)
 main.BackgroundColor3 = Color3.fromRGB(25,25,25)
 main.BorderSizePixel = 0
 main.Active = true
-main.Draggable = 
+main.Draggable = false
 main.Parent = gui
 
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
@@ -184,6 +184,8 @@ sliderFrame.Position = UDim2.fromOffset(10,270)
 sliderFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 sliderFrame.BorderSizePixel = 0
 sliderFrame.Parent = main
+sliderFrame.Active = true
+sliderFrame.ZIndex = 10
 Instance.new("UICorner", sliderFrame).CornerRadius = UDim.new(1,0)
 
 local sliderFill = Instance.new("Frame")
@@ -242,6 +244,19 @@ local clickDebounce = false
 local expandedSize = UDim2.fromOffset(190,300)
 local collapsedSize = UDim2.fromOffset(190,45)
 
+sliderFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		draggingMenu = false -- chặn kéo menu
+	end
+end)
+
+sliderFrame.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
 --------------------------------------------------
 -- COLLAPSE
 --------------------------------------------------
@@ -278,37 +293,24 @@ end)
 --------------------------------------------------
 
 title.InputBegan:Connect(function(input)
-
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		draggingMenu = true
-		dragStart = input.Position
-		startPos = main.Position
+	if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+		return
 	end
 
+	-- Không kéo menu nếu đang kéo slider
+	if dragging then
+		return
+	end
+
+	draggingMenu = true
+	dragStart = input.Position
+	startPos = main.Position
 end)
 
 title.InputEnded:Connect(function(input)
 
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		draggingMenu = false
-	end
-
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-
-	if draggingMenu
-		and input.UserInputType == Enum.UserInputType.MouseMovement then
-
-		local delta = input.Position - dragStart
-
-		main.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
-		)
-
 	end
 
 end)
@@ -334,7 +336,7 @@ local function createESP(player)
 	bb.AlwaysOnTop = true
 	bb.StudsOffset = Vector3.new(0,3,0)
 	bb.Size = UDim2.fromOffset(80,40)
-	bb.Parent = LocalPlayer.PlayerGui
+	bb.Parent = gui
 
 	local text = Instance.new("TextLabel")
 	text.Size = UDim2.fromScale(1,1)
@@ -717,9 +719,14 @@ end)
 
 UserInputService.InputEnded:Connect(function(input)
 
-	-- Thả CTRL
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+		draggingMenu = false
+	end
+
+	-- CTRL
 	if input.KeyCode == Enum.KeyCode.LeftControl
-		or input.KeyCode == Enum.KeyCode.RightControl then
+	or input.KeyCode == Enum.KeyCode.RightControl then
 
 		mouseUnlockedByCtrl = false
 
@@ -729,34 +736,48 @@ UserInputService.InputEnded:Connect(function(input)
 		updateMouseState()
 	end
 
-	-- Thả chuột trái
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		aimHeld = false
-	end
-
-end)
-
-sliderFrame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-	end
-end)
-
-sliderFrame.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local mouseX = UserInputService:GetMouseLocation().X
-		local rel = math.clamp((mouseX - sliderFrame.AbsolutePosition.X) / sliderFrame.AbsoluteSize.X, 0, 1)
 
-		fovRadius = math.floor(30 + rel * 270) -- 30 → 300
+	if input.UserInputType ~= Enum.UserInputType.MouseMovement then
+		return
+	end
+
+	-- kéo slider
+	if dragging then
+
+		local mouseX = UserInputService:GetMouseLocation().X
+
+		local rel = math.clamp(
+			(mouseX - sliderFrame.AbsolutePosition.X) /
+			sliderFrame.AbsoluteSize.X,
+			0,
+			1
+		)
+
+		fovRadius = math.floor(30 + rel * 270)
+
 		sliderFill.Size = UDim2.new(rel,0,1,0)
 		sliderLabel.Text = "FOV : "..fovRadius
+
+		return
 	end
+
+	-- kéo menu
+	if draggingMenu then
+
+		local delta = input.Position - dragStart
+
+		main.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+
+	end
+
 end)
 
 --------------------------------------------------
